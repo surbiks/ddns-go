@@ -57,6 +57,18 @@ const DNS_PROVIDERS = {
       "zh-cn": "<a target='_blank' href='https://dash.cloudflare.com/profile/api-tokens'>创建令牌 -> 编辑区域 DNS (使用模板)</a>",
     }
   },
+  arvancloud: {
+    name: {
+      "en": "ArvanCloud",
+      "zh-cn": "ArvanCloud",
+    },
+    idLabel: "",
+    secretLabel: "API Key",
+    helpHtml: {
+      "en": "<a target='_blank' href='https://www.arvancloud.ir/en'>Create API Key</a>",
+      "zh-cn": "<a target='_blank' href='https://www.arvancloud.ir'>创建 API Key</a>",
+    }
+  },
   huaweicloud: {
     name: {
       "en": "Huawei",
