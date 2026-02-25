@@ -6,7 +6,7 @@ import (
 
 const ConfigFilePathENV = "DDNS_CONFIG_FILE_PATH"
 
-// GetConfigFilePath 获得配置文件路径
+// GetConfigFilePath getconfig file path
 func GetConfigFilePath() string {
 	configFilePath := os.Getenv(ConfigFilePathENV)
 	if configFilePath != "" {
@@ -15,7 +15,7 @@ func GetConfigFilePath() string {
 	return GetConfigFilePathDefault()
 }
 
-// GetConfigFilePathDefault 获得默认的配置文件路径
+// GetConfigFilePathDefault getdefault config file path
 func GetConfigFilePathDefault() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {

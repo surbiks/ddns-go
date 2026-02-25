@@ -74,14 +74,14 @@ type EdgeOneStatus struct {
 	}
 }
 
-// Init 初始化
+// Init
 func (eo *EdgeOne) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	eo.Domains.Ipv4Cache = ipv4cache
 	eo.Domains.Ipv6Cache = ipv6cache
 	eo.DNS = dnsConf.DNS
 	eo.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认 600s
+		// default 600s
 		eo.TTL = 600
 	} else {
 		ttl, err := strconv.Atoi(dnsConf.TTL)
@@ -93,7 +93,7 @@ func (eo *EdgeOne) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新 IPv4/IPv6 记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (eo *EdgeOne) AddUpdateDomainRecords() config.Domains {
 	eo.addUpdateDomainRecords("A")
 	eo.addUpdateDomainRecords("AAAA")
@@ -110,14 +110,14 @@ func (eo *EdgeOne) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		zoneResult, err := eo.getZone(domain.DomainName)
 		if err != nil || zoneResult.Response.TotalCount <= 0 || zoneResult.Response.Zones[0].ZoneName != domain.DomainName {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 		zoneId := zoneResult.Response.Zones[0].ZoneId
 		recordResult, err := eo.getRecordList(domain, recordType, zoneId)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
@@ -140,10 +140,10 @@ func (eo *EdgeOne) addUpdateDomainRecords(recordType string) {
 			}
 		}
 		if recordSelected != nil {
-			// 修改记录
+			// modifyrecord
 			eo.modify(*recordSelected, domain, recordType, ipAddr, zoneId)
 		} else {
-			// 添加记录
+			// addrecord
 			eo.create(domain, recordType, ipAddr, zoneId)
 		}
 	}
@@ -172,25 +172,25 @@ func (eo *EdgeOne) create(domain *config.Domain, recordType string, ipAddr strin
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Response.Error.Code == "" {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, status.Response.Error.Message)
+		util.Log("Failed to add domain %s! Result: %s", domain, status.Response.Error.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
 // ModifyDnsRecords https://cloud.tencent.com/document/product/1552/114252
 func (eo *EdgeOne) modify(record EdgeOneRecord, domain *config.Domain, recordType string, ipAddr string, ZoneId string) {
-	// 相同不修改
+	// skip if unchanged
 	if record.Content == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 	var status EdgeOneStatus
@@ -219,16 +219,16 @@ func (eo *EdgeOne) modify(record EdgeOneRecord, domain *config.Domain, recordTyp
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Response.Error.Code == "" {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, status.Response.Error.Message)
+		util.Log("Failed to updated domain %s! Result: %s", domain, status.Response.Error.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
@@ -272,7 +272,7 @@ func (eo *EdgeOne) getRecordList(domain *config.Domain, recordType string, ZoneI
 	return
 }
 
-// getLocation 获取记录线路，为空返回默认
+// getLocation get records default
 func (eo *EdgeOne) getLocation(domain *config.Domain) string {
 	if domain.GetCustomParams().Has("Location") {
 		return domain.GetCustomParams().Get("Location")
@@ -280,7 +280,7 @@ func (eo *EdgeOne) getLocation(domain *config.Domain) string {
 	return "Default"
 }
 
-// request 统一请求接口
+// request shared request method
 func (eo *EdgeOne) request(action string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

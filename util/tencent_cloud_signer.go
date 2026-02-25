@@ -26,7 +26,7 @@ const (
 	EdgeOne = "teo"
 )
 
-// TencentCloudSigner 腾讯云签名方法 v3 https://cloud.tencent.com/document/api/1427/56189#Golang
+// TencentCloudSigner v3 https://cloud.tencent.com/document/api/1427/56189#Golang
 func TencentCloudSigner(secretId string, secretKey string, r *http.Request, action string, payload string, service string) {
 	algorithm := "TC3-HMAC-SHA256"
 	host := WriteString(service, ".tencentcloudapi.com")

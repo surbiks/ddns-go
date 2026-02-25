@@ -8,15 +8,15 @@ import (
 	"os"
 )
 
-// MemoryLogs 内存中的日志
+// MemoryLogs logs in memory
 type MemoryLogs struct {
-	MaxNum int      // 保存最大条数
-	Logs   []string // 日志
+	MaxNum int      // max saved entries
+	Logs   []string //
 }
 
 func (mlogs *MemoryLogs) Write(p []byte) (n int, err error) {
 	mlogs.Logs = append(mlogs.Logs, string(p))
-	// 处理日志数量
+	// handle log count
 	if len(mlogs.Logs) > mlogs.MaxNum {
 		mlogs.Logs = mlogs.Logs[len(mlogs.Logs)-mlogs.MaxNum:]
 	}
@@ -25,7 +25,7 @@ func (mlogs *MemoryLogs) Write(p []byte) (n int, err error) {
 
 var mlogs = &MemoryLogs{MaxNum: 50}
 
-// 初始化日志
+// initialize logs
 func init() {
 	log.SetOutput(io.MultiWriter(mlogs, os.Stdout))
 	// log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
@@ -33,7 +33,7 @@ func init() {
 
 // Logs web
 func Logs(writer http.ResponseWriter, request *http.Request) {
-	// mlogs.Logs数组转为json
+	// mlogs.Logs json
 	logs, _ := json.Marshal(mlogs.Logs)
 	writer.Write(logs)
 }

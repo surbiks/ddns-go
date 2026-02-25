@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// IsPrivateNetwork 是否为私有地址
+// IsPrivateNetwork address
 // https://en.wikipedia.org/wiki/Private_network
 func IsPrivateNetwork(remoteAddr string) bool {
 	// removing optional port from remoteAddr

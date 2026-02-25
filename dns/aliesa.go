@@ -26,26 +26,26 @@ type Aliesa struct {
 	domainCache config.DomainTuples
 }
 
-// AliesaSiteResp 站点返回结果
+// AliesaSiteResp result
 type AliesaSiteResp struct {
 	TotalCount int
 	Sites      []AliesaSite
 }
 
-// AliesaSites 站点
+// AliesaSites
 type AliesaSite struct {
 	SiteId     int64
 	SiteName   string
 	AccessType string
 }
 
-// AliesaRecordResp 记录返回结果
+// AliesaRecordResp record response
 type AliesaRecordResp struct {
 	TotalCount int
 	Records    []AliesaRecord
 }
 
-// AliesaRecord 记录
+// AliesaRecord record
 type AliesaRecord struct {
 	RecordId   int64
 	RecordName string
@@ -54,28 +54,28 @@ type AliesaRecord struct {
 	}
 }
 
-// AliesaResp 修改/添加返回结果
+// AliesaResp modify/add result
 type AliesaResp struct {
 	OriginPoolId int64 `json:"Id"`
 	RecordID     int64
 	RequestID    string
 }
 
-// Init 初始化
+// Init
 func (ali *Aliesa) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	ali.Domains.Ipv4Cache = ipv4cache
 	ali.Domains.Ipv6Cache = ipv6cache
 	ali.DNS = dnsConf.DNS
 	ali.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认600s
+		// default600s
 		ali.TTL = "600"
 	} else {
 		ali.TTL = dnsConf.TTL
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (ali *Aliesa) AddUpdateDomainRecords() config.Domains {
 	ali.siteCache = make(map[string]AliesaSite)
 	ali.domainCache = ali.Domains.GetAllNewIpResult("A/AAAA")
@@ -91,50 +91,50 @@ func (ali *Aliesa) addUpdateDomainRecords(recordType string) {
 			continue
 		}
 
-		// 获取站点
+		// get site
 		siteSelected, err := ali.getSite(domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.SetUpdateStatus(config.UpdatedFailed)
 			return
 		}
 		if siteSelected.SiteId == 0 {
-			util.Log("在DNS服务商中未找到根域名: %s", domain.Primary.DomainName)
+			util.Log("Root domain not found in DNS provider: %s", domain.Primary.DomainName)
 			domain.SetUpdateStatus(config.UpdatedFailed)
 			return
 		}
 
-		// 处理源地址池
+		// handle address
 		poolId, origins, err := ali.getOriginPool(siteSelected, domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.SetUpdateStatus(config.UpdatedFailed)
 			return
 		}
-		// TODO：不允许相同ip
+		// TODO ip
 		if len(origins) != 0 {
 			ali.updateOriginPool(siteSelected, domain, poolId, origins)
 			return
 		}
 
-		// 获取记录
+		// get records
 		recordSelected, err := ali.getRecord(siteSelected, domain, "A/AAAA")
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.SetUpdateStatus(config.UpdatedFailed)
 			return
 		}
 		if recordSelected.RecordId != 0 {
-			// 存在，更新
+			// update
 			ali.modify(recordSelected, domain, "A/AAAA")
 		} else {
-			// 不存在，创建
+			// create
 			ali.create(siteSelected, domain, "A/AAAA")
 		}
 	}
 }
 
-// 创建
+// create
 // https://help.aliyun.com/zh/edge-security-acceleration/esa/api-esa-2024-09-10-createrecord
 func (ali *Aliesa) create(site AliesaSite, domainTuple *config.DomainTuple, recordType string) {
 	domain := domainTuple.Primary
@@ -149,7 +149,7 @@ func (ali *Aliesa) create(site AliesaSite, domainTuple *config.DomainTuple, reco
 	params.Set("Data", `{"Value":"`+ipAddr+`"}`)
 	params.Set("Ttl", ali.TTL)
 
-	// 兼容 CNAME 接入方式
+	// compatible CNAME
 	if site.AccessType == "CNAME" && !params.Has("Proxied") {
 		params.Set("Proxied", "true")
 	}
@@ -161,28 +161,28 @@ func (ali *Aliesa) create(site AliesaSite, domainTuple *config.DomainTuple, reco
 	err := ali.request(http.MethodPost, params, &result)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domainTuple.SetUpdateStatus(config.UpdatedFailed)
 		return
 	}
 
 	if result.RecordID != 0 {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domainTuple.SetUpdateStatus(config.UpdatedSuccess)
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, "返回RecordId为空")
+		util.Log("Failed to add domain %s! Result: %s", domain, "returned empty RecordId")
 		domainTuple.SetUpdateStatus(config.UpdatedFailed)
 	}
 }
 
-// 修改
+// modify
 // https://help.aliyun.com/zh/edge-security-acceleration/esa/api-esa-2024-09-10-updaterecord
 func (ali *Aliesa) modify(record AliesaRecord, domainTuple *config.DomainTuple, recordType string) {
 	domain := domainTuple.Primary
 	ipAddr := domainTuple.GetIpAddrPool(",")
-	// 相同不修改
+	// skip if unchanged
 	if record.Data.Value == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 
@@ -198,17 +198,17 @@ func (ali *Aliesa) modify(record AliesaRecord, domainTuple *config.DomainTuple, 
 	err := ali.request(http.MethodPost, params, &result)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domainTuple.SetUpdateStatus(config.UpdatedFailed)
 		return
 	}
 
-	// 不检查 result.RecordID ，更新成功也会返回 0
-	util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+	// check result.RecordID updatesuccess 0
+	util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 	domainTuple.SetUpdateStatus(config.UpdatedSuccess)
 }
 
-// 获取当前域名信息
+// get current domain info
 // https://help.aliyun.com/zh/edge-security-acceleration/esa/api-esa-2024-09-10-listrecords
 func (ali *Aliesa) getRecord(site AliesaSite, domainTuple *config.DomainTuple, recordType string) (result AliesaRecord, err error) {
 	domain := domainTuple.Primary
@@ -226,7 +226,7 @@ func (ali *Aliesa) getRecord(site AliesaSite, domainTuple *config.DomainTuple, r
 		return
 	}
 
-	// 指定 RecordId
+	// RecordId
 	recordId := domain.GetCustomParams().Get("RecordId")
 	if recordId != "" {
 		for i := 0; i < len(recordResp.Records); i++ {
@@ -238,7 +238,7 @@ func (ali *Aliesa) getRecord(site AliesaSite, domainTuple *config.DomainTuple, r
 	return recordResp.Records[0], nil
 }
 
-// 获取域名的站点信息
+// get domain site info
 // https://help.aliyun.com/zh/edge-security-acceleration/esa/api-esa-2024-09-10-listsites
 func (ali *Aliesa) getSite(domainTuple *config.DomainTuple) (result AliesaSite, err error) {
 	domain := domainTuple.Primary
@@ -246,10 +246,10 @@ func (ali *Aliesa) getSite(domainTuple *config.DomainTuple) (result AliesaSite, 
 		return site, nil
 	}
 
-	// 解析自定义参数 SiteId，但不使用 api GetSite 查询
+	// parse parameters SiteId api GetSite
 	siteIdStr := domain.GetCustomParams().Get("SiteId")
 	if siteId, _ := strconv.ParseInt(siteIdStr, 10, 64); siteId != 0 {
-		// 兼容 CNAME 接入方式
+		// compatible CNAME
 		result.AccessType = "CNAME"
 		result.SiteName = domain.DomainName
 		result.SiteId = siteId
@@ -276,7 +276,7 @@ func (ali *Aliesa) getSite(domainTuple *config.DomainTuple) (result AliesaSite, 
 	return
 }
 
-// getOriginPool 获取源地址池
+// getOriginPool get origin pool
 // https://help.aliyun.com/zh/edge-security-acceleration/esa/api-esa-2024-09-10-listoriginpools
 func (ali *Aliesa) getOriginPool(site AliesaSite, domainTuple *config.DomainTuple) (id int64, origins []map[string]interface{}, err error) {
 	name, found := strings.CutSuffix(domainTuple.Primary.SubDomain, ".origin-pool")
@@ -307,19 +307,19 @@ func (ali *Aliesa) getOriginPool(site AliesaSite, domainTuple *config.DomainTupl
 	return
 }
 
-// updateOriginPool 更新源地址池
+// updateOriginPool update address
 // https://help.aliyun.com/zh/edge-security-acceleration/esa/api-esa-2024-09-10-updateoriginpool
 func (ali *Aliesa) updateOriginPool(site AliesaSite, domainTuple *config.DomainTuple, id int64, origins []map[string]interface{}) {
 	needUpdate := false
 	count := len(domainTuple.Domains)
 	for _, origin := range origins {
-		// 源地址池不能有多个相同地址，因此 Domain 更少放内层
+		// address address Domain
 		for i, d := range domainTuple.Domains {
 			name := d.GetCustomParams().Get("Name")
 			if origin["Name"] != name {
 				continue
 			}
-			// 相同不修改
+			// skip if unchanged
 			address := domainTuple.IpAddrs[i]
 			if origin["Address"] != address {
 				origin["Address"] = address
@@ -333,13 +333,13 @@ func (ali *Aliesa) updateOriginPool(site AliesaSite, domainTuple *config.DomainT
 	domain := domainTuple.Primary
 	ipAddr := domainTuple.GetIpAddrPool(",")
 	if count > 0 {
-		// 有新增的源地址
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, "不支持新增源地址")
+		// add address
+		util.Log("Failed to updated domain %s! Result: %s", domain, "adding new origin addresses is not supported")
 		domainTuple.SetUpdateStatus(config.UpdatedFailed)
 		return
 	}
 	if !needUpdate {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 
@@ -354,21 +354,21 @@ func (ali *Aliesa) updateOriginPool(site AliesaSite, domainTuple *config.DomainT
 	err := ali.request(http.MethodPost, params, &result)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domainTuple.SetUpdateStatus(config.UpdatedFailed)
 		return
 	}
 
 	if result.OriginPoolId != 0 {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domainTuple.SetUpdateStatus(config.UpdatedSuccess)
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, "返回 OriginPool Id为空")
+		util.Log("Failed to updated domain %s! Result: %s", domain, "returned empty OriginPool ID")
 		domainTuple.SetUpdateStatus(config.UpdatedFailed)
 	}
 }
 
-// request 统一请求接口
+// request shared request method
 func (ali *Aliesa) request(method string, params url.Values, result interface{}) (err error) {
 	util.AliyunSigner(ali.DNS.ID, ali.DNS.Secret, &params, method, "2024-09-10")
 

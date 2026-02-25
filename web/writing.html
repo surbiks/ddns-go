@@ -94,10 +94,10 @@
               <div class="form-group row" id="DnsExtParamRow" style="display: none;">
                 <label for="DnsExtParam" id="dnsExtParamLabel" class="col-sm-2 col-form-label">Team ID</label>
                 <div class="col-sm-10">
-                  <input class="form-control form" name="DnsExtParam" id="DnsExtParam" placeholder="team_xxxxxx (可选)" />
+                  <input class="form-control form" name="DnsExtParam" id="DnsExtParam" placeholder="team_xxxxxx (optional)" />
                   <small class="form-text text-muted">
                     <span id="dnsExtParamHelp" data-i18n-html="extParamHelp">
-                      可选项，如果您使用的是 Vercel 团队账户，请填写团队 ID
+                      Optional: If you use a Vercel team account, fill in the team ID.
                     </span>
                   </small>
                 </div>
@@ -358,7 +358,7 @@
 
 </body>
 
-<!-- 全局变量 -->
+<!-- global variables -->
 <script>
   let configIndex = -1;
   let dnsConf = [];
@@ -399,9 +399,9 @@
   };
 </script>
 
-<!-- 表单相关 -->
+<!-- form related -->
 <script>
-  // 生成DNS选择项
+  // DNS
   for (const key in DNS_PROVIDERS) {
     const value = DNS_PROVIDERS[key];
     const $selector = document.getElementById("DnsSelector");
@@ -420,7 +420,7 @@
     $selector.appendChild($el);
   }
 
-  // Dns名称被点击
+  // Dns
   document.querySelectorAll("input[name=DnsName]").forEach($input => {
     $input.addEventListener('click', e => {
       const dnsInfo = DNS_PROVIDERS[e.target.value];
@@ -428,13 +428,13 @@
       const $dnsExtParamRow = document.getElementById("DnsExtParamRow");
       const $dnsExtParamLabel = document.getElementById("dnsExtParamLabel");
       const $dnsExtParamHelp = document.getElementById("dnsExtParamHelp");
-      // idLabel 为空时隐藏 DnsID
+      // idLabel DnsID
       if (dnsInfo.idLabel) {
         $dnsID.style.display = "block";
       } else {
         $dnsID.style.display = "none";
       }
-      // 根据DNS提供商显示扩展参数
+      // DNS parameters
       if (dnsInfo.extParamLabel) {
         $dnsExtParamRow.style.display = "";
         $dnsExtParamLabel.innerHTML = dnsInfo.extParamLabel;
@@ -451,17 +451,17 @@
     });
   });
 
-  // formDnsConf中的表单项值改变时，更新dnsConf
+  // formDnsConf updatednsConf
   document.querySelectorAll("#formDnsConf [name]").forEach($e => {
     const name = $e.getAttribute("name");
-    // 判断对应input的类型
+    // input type
     switch ($e.getAttribute("type")) {
       case "checkbox":
         $e.addEventListener('change', e => {
           dnsConf[configIndex][name] = e.target.checked;
         });
         break;
-      // 如果是其它类型的input或者不是input（如textarea、select），都可以使用input事件监听
+      // type input input textarea select input
       default:
         $e.addEventListener('input', e => {
           dnsConf[configIndex][name] = e.target.value;
@@ -470,17 +470,17 @@
     }
   });
 
-  // formGlobal中的表单项值改变时，更新globalConf
+  // formGlobal updateglobalConf
   document.querySelectorAll("#formGlobal [name]").forEach($e => {
     const name = $e.getAttribute("name");
-    // 判断对应input的类型
+    // input type
     switch ($e.getAttribute("type")) {
       case "checkbox":
         $e.addEventListener('change', e => {
           globalConf[name] = e.target.checked;
         });
         break;
-      // 如果是其它类型的input或者不是input（如textarea、select），都可以使用input事件监听
+      // type input input textarea select input
       default:
         $e.addEventListener('input', e => {
           globalConf[name] = e.target.value;
@@ -489,7 +489,7 @@
     }
   });
 
-  // 处理切换IP获取方式时的UI变化
+  // handle IPget UI
   document.querySelectorAll('[name=Ipv4GetType], [name=Ipv6GetType]').forEach($input => {
     $input.addEventListener('click', e => {
       const $target = e.target;
@@ -501,19 +501,19 @@
       $card.querySelectorAll(`[data-visible=${$target.value}]`).forEach($el => {
         $el.style.display = "";
       });
-      // 修改label的for属性
+      // modifylabel for
       const $curInput = $group.querySelector(`[data-visible=${$target.value}]`);
       $group.querySelector('[data-i18n="Get IP method"]').setAttribute('for', $curInput.id);
     });
   });
 </script>
 
-<!-- 配置项 -->
+<!-- config item -->
 <script>
-  // 不需要填充到表单中的字段
+  //
   const SKIPPED_NAMES = ["Name"];
 
-  // 把dnsConf中的值填充到表单中
+  // dnsConf
   function showConf(idx) {
     const conf = dnsConf[idx] ?? {};
     for (const name in conf) {
@@ -522,7 +522,7 @@
       }
 
       const $e = document.querySelector(`[name=${name}]`);
-      // 判断对应input的类型
+      // input type
       switch ($e.getAttribute("type")) {
         case "checkbox":
           $e.checked = conf[name];
@@ -531,18 +531,18 @@
           document.querySelector(`[name=${name}][value=${conf[name]}]`).click();
           break;
         default:
-          //特殊处理select类型，要保证option存在，否则取第一个option
+          // handleselecttype option option
           if ($e.tagName === "SELECT" &&
             $e.querySelector(`option[value="${conf[name]}"]`) === null) {
             $e.value = $e.querySelector("option")?.value;
             conf[name] = $e.value || "";
           }
-          // 如果是其它类型的input或者不是input（如textarea），都使用value赋值
+          // type input input textarea value
           $e.value = conf[name];
           break;
       }
     }
-    // 根据 DNS 提供商显示或隐藏扩展参数输入框
+    // DNS parameters
     const $dnsExtParamRow = document.getElementById("DnsExtParamRow");
     const $dnsExtParamLabel = document.getElementById("dnsExtParamLabel");
     const $dnsExtParamHelp = document.getElementById("dnsExtParamHelp");
@@ -556,7 +556,7 @@
     }
   }
 
-  // 从json中重新加载配置
+  // json config
   function reloadConf(jsonConf) {
     try {
       dnsConf = JSON.parse(jsonConf);
@@ -575,7 +575,7 @@
     for (let i = 0; i < dnsConf.length; i++) {
       appendConfigToIndex(i);
     }
-    // 负数表示倒数第几个
+    //
     if (configIndex < 0) {
       configIndex += dnsConf.length;
     } else {
@@ -585,7 +585,7 @@
     showConf(configIndex);
   }
 
-  // 拼接新的配置项到下拉菜单
+  // config item
   function appendConfigToIndex(idx) {
     const $index = document.getElementById('index');
 
@@ -596,25 +596,25 @@
     $index.append($option);
   }
 
-  // 获取配置名称或生成默认名称
+  // getconfig default
   function getConfName(idx, _default = dnsConf[idx].DnsName) {
     return dnsConf[idx].Name || `${idx + 1} - ${_default}`;
   }
 
-  // 新增配置按钮被点击
+  // addconfig
   document.getElementById("addBtn").addEventListener('click', e => {
     e.preventDefault();
     configIndex = dnsConf.length;
     dnsConf[configIndex] = { ...defaultDnsConf };
 
-    // 创建新的option
+    // create option
     appendConfigToIndex(configIndex);
 
     document.getElementById("index").value = configIndex;
     showConf(configIndex);
   });
 
-  // 重命名配置按钮被点击
+  // config
   document.getElementById("renameBtn").addEventListener('click', e => {
     e.preventDefault();
 
@@ -625,7 +625,7 @@
     }
   });
 
-  // 删除配置按钮被点击
+  // deleteconfig
   document.getElementById("delBtn").addEventListener('click', e => {
     e.preventDefault();
     const $index = document.getElementById("index");
@@ -643,11 +643,11 @@
     }
   });
 
-  // 保存配置按钮被点击
+  // saveconfig
   document.querySelectorAll(".submit_btn").forEach($el => {
     $el.addEventListener('click', async e => {
       e.preventDefault();
-      // 如果没有idLabel，删除DnsID
+      // idLabel deleteDnsID
       if (!DNS_PROVIDERS[dnsConf[configIndex].DnsName].idLabel) {
         dnsConf[configIndex].DnsID = "";
       }
@@ -666,7 +666,7 @@
           showMessage({
             content: i18n({
               "en": "Successfully saved",
-              "zh-cn": "保存成功",
+              "zh-cn": "savesuccess",
             }),
             type: "success",
             duration: 1500,
@@ -679,24 +679,24 @@
     });
   });
 
-  // 切换配置项
+  // config item
   document.getElementById("index").addEventListener('change', e => {
     configIndex = parseInt(e.target.value);
     showConf(configIndex);
   });
 
-  // 初始化dnsConf
+  // dnsConf
   reloadConf("{{.DnsConf}}");
 </script>
 
-<!-- 日志相关函数和日志初始化 -->
+<!-- log functions and log initialization -->
 <script>
-  // 获取日志
+  // get logs
   const getLogs = async (loop = false) => {
     let logsList = [];
     try {
       const resp = await request.get("./logs");
-      // 如果不是数组，说明返回的是错误信息
+      //
       if (!Array.isArray(resp)) {
         throw new Error(resp);
       }
@@ -714,10 +714,10 @@
       }
     }
     const $logs = document.getElementById("logs");
-    // 判断滚动条是否在底部
+    //
     const isBottom = $logs.scrollHeight - $logs.scrollTop - $logs.clientHeight < 10;
     $logs.value = logsList.join("");
-    // 如果滚动条原先在底部，滚动到底部
+    //
     if (isBottom) {
       $logs.scrollTop = $logs.scrollHeight;
     }
@@ -726,12 +726,12 @@
       "logItem",
       logsList[logsList.length - 1] || ""
     );
-    // 计算日志更新部分
+    // update
     const newLogsList = logsList.slice(
-      // 如果oldLogItem出现多次，使用indexOf会得到第一次出现的位置导致一直判定为有新日志，所以这里使用lastIndexOf
+      // oldLogItem indexOf lastIndexOf
       logsList.lastIndexOf(oldLogItem) + 1
     );
-    // 如果日志面板可见或者没有新增日志，则不显示
+    // add
     if (
       !newLogsList.length ||
       document.getElementById("logs-panel").style.visibility !== "hidden"
@@ -742,9 +742,9 @@
     $logsBtn.classList.add("unread");
     $logsBtn.dataset.title = i18n({
       "en": `${newLogsList.length} new logs`,
-      "zh-cn": `新增${newLogsList.length}条日志`,
+      "zh-cn": `Added ${newLogsList.length} log entries`,
     });
-    // 如果新增日志行数小于等于3，则message显示新增日志，否则显示最后2行并提示剩余行数
+    // add 3 message add 2
     if (newLogsList.length <= 3) {
       for (const line of newLogsList) {
         showMessage({
@@ -758,7 +758,7 @@
         type: "info",
         content: i18n({
           "en": `Please check the previous ${newLogsList.length - 2} logs by yourself`,
-          "zh-cn": `前${newLogsList.length - 2}条日志请自行查看`,
+          "zh-cn": `Please check the previous ${newLogsList.length - 2} log entries yourself`,
         })
       });
       for (const line of newLogsList.slice(-2)) {
@@ -771,7 +771,7 @@
     }
   }
 
-  // 清空日志
+  // clear logs
   document.getElementById("clearLogBtn").addEventListener('click', async e => {
     e.preventDefault();
     try {
@@ -786,10 +786,10 @@
     }
   });
 
-  // 显示/隐藏日志面板
+  // show/hide log panel
   document.querySelectorAll('#logsBtn, #closeLogBtn, #mask').forEach($el => {
     $el.addEventListener('click', () => {
-      // 取消未读标记
+      //
       const $logsBtn = document.getElementById("logsBtn");
       $logsBtn.classList.remove("unread");
       $logsBtn.dataset.title = ""
@@ -803,16 +803,16 @@
     });
   });
 
-  // 页面加载完成后定时获取日志
+  // periodically fetch logs after page load
   document.addEventListener('DOMContentLoaded', () => getLogs(true));
 </script>
 
-<!-- 主题色相关的函数和初始化 -->
+<!-- theme-related functions and initialization -->
 <script src="./static/theme.js"></script>
 
-<!-- 测试相关 -->
+<!-- test related -->
 <script>
-  // 模拟测试webhook
+  // testwebhook
   document.getElementById("webhookTestBtn").addEventListener('click', async e => {
     e.preventDefault();
     try {
@@ -824,7 +824,7 @@
       showMessage({
         content: i18n({
           "en": "Submit simulation test successfully! The data is fake data, just to test whether the Webhook is normal or not",
-          "zh-cn": "提交模拟测试成功! 数据为假数据, 只是为了测试Webhook正常与否",
+          "zh-cn": "Mock test submitted successfully! Data is fake and only used to verify the webhook workflow.",
         }),
         type: "success",
       });
@@ -837,10 +837,10 @@
     }
   });
 
-  // 测试正则表达式
+  // test
   const $ipv6Reg = document.getElementById("Ipv6Reg");
   const ipv6RegTooltip = new Tooltip($ipv6Reg, ['manual', 'focus']);
-  // ipv6网卡信息
+  // ipv6
   const $ipv6NetInterface = document.getElementById("Ipv6NetInterface");
   const ipv6Dict = Array.from($ipv6NetInterface.options).reduce((acc, option) => {
     const ipv6s = option.innerText.match(/([0-9a-fA-F:]{2,})/g);
@@ -850,13 +850,13 @@
     return acc;
   }, {});
   $ipv6Reg.addEventListener('input', e => {
-    // 为空时不处理
+    // handle
     if (!$ipv6Reg.value) {
       ipv6RegTooltip.hide();
       return;
     }
     const curIpv6s = ipv6Dict[$ipv6NetInterface.value] || [];
-    // 指定第N个ipv6地址
+    // N ipv6address
     const ipv6IndexMatch = $ipv6Reg.value.match(/^@(\d+)$/);
     if (ipv6IndexMatch) {
       const idx = parseInt(ipv6IndexMatch[1]) - 1;
@@ -864,7 +864,7 @@
         ipv6RegTooltip.show({
           title: i18n({
             "en": "<span style='color: red'>Index out of range</span>",
-            "zh-cn": "<span style='color: red'>索引超出范围</span>",
+            "zh-cn": "<span style='color: red'>Index out of range</span>",
           }),
           html: true,
           placement: "top",
@@ -874,14 +874,14 @@
       ipv6RegTooltip.show({
         title: i18n({
           "en": `Matched: ${curIpv6s[idx]}`,
-          "zh-cn": `匹配到: ${curIpv6s[idx]}`,
+          "zh-cn": `Matched: ${curIpv6s[idx]}`,
         }),
         placement: "top",
       });
       return;
     }
 
-    // 检测正则表达式是否合法
+    //
     let reg;
     try {
       reg = new RegExp($ipv6Reg.value);
@@ -889,20 +889,20 @@
       ipv6RegTooltip.show({
         title: i18n({
           "en": "<span style='color: red'>Invalid regular expression</span>",
-          "zh-cn": "<span style='color: red'>无效的正则表达式</span>",
+          "zh-cn": "<span style='color: red'>Invalid regular expression</span>",
         }),
         html: true,
         placement: "top",
       });
       return;
     }
-    // 显示正则表达式的匹配结果
+    // result
     for (const ipv6 of curIpv6s) {
       if (reg.test(ipv6)) {
         ipv6RegTooltip.show({
           title: i18n({
             "en": `Matched: ${ipv6}`,
-            "zh-cn": `匹配到: ${ipv6}`,
+            "zh-cn": `Matched: ${ipv6}`,
           }),
           placement: "top",
         });
@@ -912,7 +912,7 @@
     ipv6RegTooltip.show({
       title: i18n({
         "en": "<span style='color: red'>No match found</span>",
-        "zh-cn": "<span style='color: red'>无匹配项</span>",
+        "zh-cn": "<span style='color: red'>No match found</span>",
       }),
       html: true,
       placement: "top",

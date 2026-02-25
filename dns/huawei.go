@@ -33,12 +33,12 @@ type HuaweicloudZonesResp struct {
 	}
 }
 
-// HuaweicloudRecordsResp 记录返回结果
+// HuaweicloudRecordsResp record response
 type HuaweicloudRecordsResp struct {
 	Recordsets []HuaweicloudRecordsets
 }
 
-// HuaweicloudRecordsets 记录
+// HuaweicloudRecordsets record
 type HuaweicloudRecordsets struct {
 	ID      string
 	Name    string `json:"name"`
@@ -50,14 +50,14 @@ type HuaweicloudRecordsets struct {
 	Weight  int      `json:"weight"`
 }
 
-// Init 初始化
+// Init
 func (hw *Huaweicloud) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	hw.Domains.Ipv4Cache = ipv4cache
 	hw.Domains.Ipv6Cache = ipv6cache
 	hw.DNS = dnsConf.DNS
 	hw.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认300s
+		// default300s
 		hw.TTL = 300
 	} else {
 		ttl, err := strconv.Atoi(dnsConf.TTL)
@@ -69,7 +69,7 @@ func (hw *Huaweicloud) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, 
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (hw *Huaweicloud) AddUpdateDomainRecords() config.Domains {
 	hw.addUpdateDomainRecords("A")
 	hw.addUpdateDomainRecords("AAAA")
@@ -89,8 +89,8 @@ func (hw *Huaweicloud) addUpdateDomainRecords(recordType string) {
 		params.Set("name", domain.String())
 		params.Set("type", recordType)
 
-		// 如果有精准匹配
-		// 详见 查询记录集 https://support.huaweicloud.com/api-dns/dns_api_64002.html
+		//
+		// record https://support.huaweicloud.com/api-dns/dns_api_64002.html
 		if customParams.Has("zone_id") && customParams.Has("recordset_id") {
 			var record HuaweicloudRecordsets
 			err := hw.request(
@@ -101,18 +101,18 @@ func (hw *Huaweicloud) addUpdateDomainRecords(recordType string) {
 			)
 
 			if err != nil {
-				util.Log("查询域名信息发生异常！ %s", err)
+				util.Log("Failed to query domain info! %s", err)
 				domain.UpdateStatus = config.UpdatedFailed
 				return
 			}
 
-			// 更新
+			// update
 			hw.modify(record, domain, ipAddr)
 
-		} else { // 没有精准匹配，则支持更多的查询参数。详见 查询租户记录集列表 https://support.huaweicloud.com/api-dns/dns_api_64003.html
-			// 复制所有自定义参数
+		} else { // parameters record https://support.huaweicloud.com/api-dns/dns_api_64003.html
+			// parameters
 			util.CopyUrlParams(customParams, params, nil)
-			// 参数名修正
+			// parameters
 			if params.Has("recordset_id") {
 				params.Set("id", params.Get("recordset_id"))
 				params.Del("recordset_id")
@@ -127,16 +127,16 @@ func (hw *Huaweicloud) addUpdateDomainRecords(recordType string) {
 			)
 
 			if err != nil {
-				util.Log("查询域名信息发生异常! %s", err)
+				util.Log("Failed to query domain info! %s", err)
 				domain.UpdateStatus = config.UpdatedFailed
 				return
 			}
 
 			find := false
 			for _, record := range records.Recordsets {
-				// 名称相同才更新。华为云默认是模糊搜索
+				// update default
 				if record.Name == domain.String()+"." {
-					// 更新
+					// update
 					hw.modify(record, domain, ipAddr)
 					find = true
 					break
@@ -152,9 +152,9 @@ func (hw *Huaweicloud) addUpdateDomainRecords(recordType string) {
 				}
 
 				if thIdParamName != "" {
-					util.Log("域名 %s 解析未找到，且因添加了参数 %s=%s 导致无法创建。本次更新已被忽略", domain, thIdParamName, customParams.Get(thIdParamName))
+					util.Log("DNS resolution for domain %s was not found, and the creation failed due to the added parameter %s=%s. This update has been ignored.", domain, thIdParamName, customParams.Get(thIdParamName))
 				} else {
-					// 新增
+					// add
 					hw.create(domain, recordType, ipAddr)
 				}
 			}
@@ -162,17 +162,17 @@ func (hw *Huaweicloud) addUpdateDomainRecords(recordType string) {
 	}
 }
 
-// 创建
+// create
 func (hw *Huaweicloud) create(domain *config.Domain, recordType string, ipAddr string) {
 	zone, err := hw.getZones(domain)
 	if err != nil {
-		util.Log("查询域名信息发生异常! %s", err)
+		util.Log("Failed to query domain info! %s", err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if len(zone.Zones) == 0 {
-		util.Log("在DNS服务商中未找到根域名: %s", domain.DomainName)
+		util.Log("Root domain not found in DNS provider: %s", domain.DomainName)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
@@ -201,26 +201,26 @@ func (hw *Huaweicloud) create(domain *config.Domain, recordType string, ipAddr s
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if len(result.Records) > 0 && result.Records[0] == ipAddr {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, result.Status)
+		util.Log("Failed to add domain %s! Result: %s", domain, result.Status)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// 修改
+// modify
 func (hw *Huaweicloud) modify(record HuaweicloudRecordsets, domain *config.Domain, ipAddr string) {
 
-	// 相同不修改
+	// skip if unchanged
 	if len(record.Records) > 0 && record.Records[0] == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 
@@ -240,21 +240,21 @@ func (hw *Huaweicloud) modify(record HuaweicloudRecordsets, domain *config.Domai
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if len(result.Records) > 0 && result.Records[0] == ipAddr {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, result.Status)
+		util.Log("Failed to updated domain %s! Result: %s", domain, result.Status)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// 获得域名记录列表
+// get domain record list
 func (hw *Huaweicloud) getZones(domain *config.Domain) (result HuaweicloudZonesResp, err error) {
 	err = hw.request(
 		"GET",
@@ -266,7 +266,7 @@ func (hw *Huaweicloud) getZones(domain *config.Domain) (result HuaweicloudZonesR
 	return
 }
 
-// request 统一请求接口
+// request shared request method
 func (hw *Huaweicloud) request(method string, urlString string, data interface{}, result interface{}) (err error) {
 	var (
 		req *http.Request

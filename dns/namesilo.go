@@ -24,7 +24,7 @@ type NameSilo struct {
 	lastIpv6 string
 }
 
-// NameSiloResp 修改域名解析结果
+// NameSiloResp modifyDNS recordresult
 type NameSiloResp struct {
 	XMLName xml.Name      `xml:"namesilo"`
 	Request Request       `xml:"request"`
@@ -63,7 +63,7 @@ type ResourceRecord struct {
 	Distance int    `xml:"distance"`
 }
 
-// Init 初始化
+// Init
 func (ns *NameSilo) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	ns.Domains.Ipv4Cache = ipv4cache
 	ns.Domains.Ipv6Cache = ipv6cache
@@ -74,7 +74,7 @@ func (ns *NameSilo) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv
 	ns.Domains.GetNewIp(dnsConf)
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (ns *NameSilo) AddUpdateDomainRecords() config.Domains {
 	ns.addUpdateDomainRecords("A")
 	ns.addUpdateDomainRecords("AAAA")
@@ -94,10 +94,10 @@ func (ns *NameSilo) addUpdateDomainRecords(recordType string) {
 			domain.SubDomain = "@"
 		}
 
-		// 拿到DNS记录列表，从列表中去取对应域名的id，有id进行修改，没ID进行新增
+		// DNSrecord list domain id id modify ID add
 		records, err := ns.listRecords(domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
@@ -110,7 +110,7 @@ func (ns *NameSilo) addUpdateDomainRecords(recordType string) {
 		} else {
 			recordID = record.RecordID
 			if record.Value == ipAddr {
-				util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+				util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 				continue
 			}
 		}
@@ -118,30 +118,30 @@ func (ns *NameSilo) addUpdateDomainRecords(recordType string) {
 	}
 }
 
-// 修改
+// modify
 func (ns *NameSilo) modify(domain *config.Domain, recordID, recordType, ipAddr string, isAdd bool) {
 	var err error
 	var result string
 	var requestType string
 	if isAdd {
-		requestType = "新增"
+		requestType = "add"
 		result, err = ns.request(ipAddr, domain, "", recordType, nameSiloAddRecordEndpoint)
 	} else {
-		requestType = "更新"
+		requestType = "update"
 		result, err = ns.request(ipAddr, domain, recordID, "", nameSiloUpdateRecordEndpoint)
 	}
 	if err != nil {
-		util.Log("异常信息: %s", err)
+		util.Log("Exception: %s", err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 	var resp NameSiloResp
 	xml.Unmarshal([]byte(result), &resp)
 	if resp.Reply.Code == 300 {
-		util.Log(requestType+"域名解析 %s 成功! IP: %s\n", domain, ipAddr)
+		util.Log(requestType+"DNS record %s success! IP: %s\n", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log(requestType+"域名解析 %s 失败! 异常信息: %s", domain, resp.Reply.Detail)
+		util.Log(requestType+"DNS record %s failed! Exception: %s", domain, resp.Reply.Detail)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
@@ -160,7 +160,7 @@ func (ns *NameSilo) listRecords(domain *config.Domain) (*NameSiloDNSListRecordRe
 	return &resp, nil
 }
 
-// request 统一请求接口
+// request shared request method
 func (ns *NameSilo) request(ipAddr string, domain *config.Domain, recordID, recordType, url string) (result string, err error) {
 	url = strings.NewReplacer(
 		"#{host}", domain.SubDomain,

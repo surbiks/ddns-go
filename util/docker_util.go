@@ -2,10 +2,10 @@ package util
 
 import "os"
 
-// DockerEnvFile Docker容器中包含的文件
+// DockerEnvFile Docker file
 const DockerEnvFile string = "/.dockerenv"
 
-// IsRunInDocker 是否在docker中运行
+// IsRunInDocker docker
 func IsRunInDocker() bool {
 	_, err := os.Stat(DockerEnvFile)
 	return err == nil

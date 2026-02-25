@@ -8,7 +8,7 @@ import (
 
 // AliyunSigner AliyunSigner
 func AliyunSigner(accessKeyID, accessSecret string, params *url.Values, httpMethod string, apiVersion string) {
-	// 公共参数
+	// parameters
 	params.Set("SignatureMethod", "HMAC-SHA1")
 	params.Set("SignatureNonce", strconv.FormatInt(time.Now().UnixNano(), 10))
 	params.Set("AccessKeyId", accessKeyID)

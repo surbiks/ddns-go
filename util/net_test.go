@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestIsPrivateNetwork 测试是否为私有地址
+// TestIsPrivateNetwork test address
 func TestIsPrivateNetwork(t *testing.T) {
 
 	data := map[string]bool{
@@ -27,7 +27,7 @@ func TestIsPrivateNetwork(t *testing.T) {
 
 	for key, value := range data {
 		if IsPrivateNetwork(key) != value {
-			t.Errorf("%s 校验失败\n", key)
+			t.Errorf("%s validation failed\n", key)
 		}
 
 	}

@@ -14,7 +14,7 @@ const (
 )
 
 // https://cloud.tencent.com/document/api/302/8516
-// Dnspod 腾讯云dns实现
+// Dnspod dns
 type Dnspod struct {
 	DNS     config.DNS
 	Domains config.Domains
@@ -30,7 +30,7 @@ type DnspodRecord struct {
 	Enabled string
 }
 
-// DnspodRecordListResp recordListAPI结果
+// DnspodRecordListResp recordListAPIresult
 type DnspodRecordListResp struct {
 	DnspodStatus
 	Records []DnspodRecord
@@ -44,21 +44,21 @@ type DnspodStatus struct {
 	}
 }
 
-// Init 初始化
+// Init
 func (dnspod *Dnspod) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	dnspod.Domains.Ipv4Cache = ipv4cache
 	dnspod.Domains.Ipv6Cache = ipv6cache
 	dnspod.DNS = dnsConf.DNS
 	dnspod.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认600s
+		// default600s
 		dnspod.TTL = "600"
 	} else {
 		dnspod.TTL = dnsConf.TTL
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (dnspod *Dnspod) AddUpdateDomainRecords() config.Domains {
 	dnspod.addUpdateDomainRecords("A")
 	dnspod.addUpdateDomainRecords("AAAA")
@@ -75,13 +75,13 @@ func (dnspod *Dnspod) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		result, err := dnspod.getRecordList(domain, recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if len(result.Records) > 0 {
-			// 默认第一个
+			// first by default
 			recordSelected := result.Records[0]
 			params := domain.GetCustomParams()
 			if params.Has("record_id") {
@@ -91,16 +91,16 @@ func (dnspod *Dnspod) addUpdateDomainRecords(recordType string) {
 					}
 				}
 			}
-			// 更新
+			// update
 			dnspod.modify(recordSelected, domain, recordType, ipAddr)
 		} else {
-			// 新增
+			// add
 			dnspod.create(domain, recordType, ipAddr)
 		}
 	}
 }
 
-// 创建
+// create
 func (dnspod *Dnspod) create(domain *config.Domain, recordType string, ipAddr string) {
 	params := domain.GetCustomParams()
 	params.Set("login_token", dnspod.DNS.ID+","+dnspod.DNS.Secret)
@@ -112,32 +112,32 @@ func (dnspod *Dnspod) create(domain *config.Domain, recordType string, ipAddr st
 	params.Set("format", "json")
 
 	if !params.Has("record_line") {
-		params.Set("record_line", "默认")
+		params.Set("record_line", "\u9ed8\u8ba4")
 	}
 
 	status, err := dnspod.request(recordCreateAPI, params)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Status.Code == "1" {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, status.Status.Message)
+		util.Log("Failed to add domain %s! Result: %s", domain, status.Status.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// 修改
+// modify
 func (dnspod *Dnspod) modify(record DnspodRecord, domain *config.Domain, recordType string, ipAddr string) {
 
-	// 相同不修改
+	// skip if unchanged
 	if record.Value == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 
@@ -152,22 +152,22 @@ func (dnspod *Dnspod) modify(record DnspodRecord, domain *config.Domain, recordT
 	params.Set("record_id", record.ID)
 
 	if !params.Has("record_line") {
-		params.Set("record_line", "默认")
+		params.Set("record_line", "\u9ed8\u8ba4")
 	}
 
 	status, err := dnspod.request(recordModifyURL, params)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Status.Code == "1" {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, status.Status.Message)
+		util.Log("Failed to updated domain %s! Result: %s", domain, status.Status.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
@@ -185,7 +185,7 @@ func (dnspod *Dnspod) request(apiAddr string, values url.Values) (status DnspodS
 	return
 }
 
-// 获得域名记录列表
+// get domain record list
 func (dnspod *Dnspod) getRecordList(domain *config.Domain, typ string) (result DnspodRecordListResp, err error) {
 
 	params := domain.GetCustomParams()

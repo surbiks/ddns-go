@@ -207,20 +207,20 @@ func (nsone *NSOne) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		zoneInfo, err := nsone.getZone(domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
 
 		if zoneInfo == nil {
-			util.Log("在DNS服务商中未找到根域名: %s", domain.DomainName)
+			util.Log("Root domain not found in DNS provider: %s", domain.DomainName)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
 
 		existingRecord, err := nsone.getRecord(domain, recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
@@ -296,19 +296,19 @@ func (nsone *NSOne) createRecord(domain *config.Domain, recordType string, ipAdd
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
-	util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 	domain.UpdateStatus = config.UpdatedSuccess
 }
 
 func (nsone *NSOne) updateRecord(domain *config.Domain, recordType string, ipAddr string, existingRecord *NSOneRecordResponse) {
 	if len(existingRecord.Answers) > 0 && len(existingRecord.Answers[0].Answer) > 0 {
 		if existingRecord.Answers[0].Answer[0] == ipAddr {
-			util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+			util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 			return
 		}
 	}
@@ -337,12 +337,12 @@ func (nsone *NSOne) updateRecord(domain *config.Domain, recordType string, ipAdd
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
-	util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 	domain.UpdateStatus = config.UpdatedSuccess
 }
 

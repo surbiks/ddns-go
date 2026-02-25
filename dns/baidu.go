@@ -22,7 +22,7 @@ type BaiduCloud struct {
 	TTL     int
 }
 
-// BaiduRecord 单条解析记录
+// BaiduRecord parserecord
 type BaiduRecord struct {
 	RecordId uint   `json:"recordId"`
 	Domain   string `json:"domain"`
@@ -34,20 +34,20 @@ type BaiduRecord struct {
 	Status   string `json:"status"`
 }
 
-// BaiduRecordsResp 获取解析列表拿到的结果
+// BaiduRecordsResp getparse result
 type BaiduRecordsResp struct {
 	TotalCount int           `json:"totalCount"`
 	Result     []BaiduRecord `json:"result"`
 }
 
-// BaiduListRequest 获取解析列表请求的body json
+// BaiduListRequest getparse request body json
 type BaiduListRequest struct {
 	Domain   string `json:"domain"`
 	PageNum  int    `json:"pageNum"`
 	PageSize int    `json:"pageSize"`
 }
 
-// BaiduModifyRequest 修改解析请求的body json
+// BaiduModifyRequest modifyparserequest body json
 type BaiduModifyRequest struct {
 	RecordId uint   `json:"recordId"`
 	Domain   string `json:"domain"`
@@ -58,7 +58,7 @@ type BaiduModifyRequest struct {
 	ZoneName string `json:"zoneName"`
 }
 
-// BaiduCreateRequest 创建新解析请求的body json
+// BaiduCreateRequest create parserequest body json
 type BaiduCreateRequest struct {
 	Domain   string `json:"domain"`
 	RdType   string `json:"rdType"`
@@ -73,7 +73,7 @@ func (baidu *BaiduCloud) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache
 	baidu.DNS = dnsConf.DNS
 	baidu.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认300s
+		// default300s
 		baidu.TTL = 300
 	} else {
 		ttl, err := strconv.Atoi(dnsConf.TTL)
@@ -85,7 +85,7 @@ func (baidu *BaiduCloud) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (baidu *BaiduCloud) AddUpdateDomainRecords() config.Domains {
 	baidu.addUpdateDomainRecords("A")
 	baidu.addUpdateDomainRecords("AAAA")
@@ -109,7 +109,7 @@ func (baidu *BaiduCloud) addUpdateDomainRecords(recordType string) {
 
 		err := baidu.request("POST", baiduEndpoint+"/v1/domain/resolve/list", requestBody, &records)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
@@ -117,23 +117,23 @@ func (baidu *BaiduCloud) addUpdateDomainRecords(recordType string) {
 		find := false
 		for _, record := range records.Result {
 			if record.Domain == domain.GetSubDomain() {
-				//存在就去更新
+				// update
 				baidu.modify(record, domain, recordType, ipAddr)
 				find = true
 				break
 			}
 		}
 		if !find {
-			//没找到，去创建
+			// create
 			baidu.create(domain, recordType, ipAddr)
 		}
 	}
 }
 
-// create 创建新的解析
+// create create parse
 func (baidu *BaiduCloud) create(domain *config.Domain, recordType string, ipAddr string) {
 	var baiduCreateRequest = BaiduCreateRequest{
-		Domain:   domain.GetSubDomain(), //处理一下@
+		Domain:   domain.GetSubDomain(), //handle @
 		RdType:   recordType,
 		TTL:      baidu.TTL,
 		Rdata:    ipAddr,
@@ -143,19 +143,19 @@ func (baidu *BaiduCloud) create(domain *config.Domain, recordType string, ipAddr
 
 	err := baidu.request("POST", baiduEndpoint+"/v1/domain/resolve/add", baiduCreateRequest, &result)
 	if err == nil {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// modify 更新解析
+// modify updateparse
 func (baidu *BaiduCloud) modify(record BaiduRecord, domain *config.Domain, rdType string, ipAddr string) {
-	//没有变化直接跳过
+	//
 	if record.Rdata == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 	var baiduModifyRequest = BaiduModifyRequest{
@@ -171,15 +171,15 @@ func (baidu *BaiduCloud) modify(record BaiduRecord, domain *config.Domain, rdTyp
 
 	err := baidu.request("POST", baiduEndpoint+"/v1/domain/resolve/edit", baiduModifyRequest, &result)
 	if err == nil {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// request 统一请求接口
+// request shared request method
 func (baidu *BaiduCloud) request(method string, url string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

@@ -80,7 +80,7 @@ func (n *NameCom) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		resp, err := n.getRecordList(domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
@@ -131,16 +131,16 @@ func (n *NameCom) create(domain *config.Domain, recordType string, ipAddr string
 	url := fmt.Sprintf(createRecord, domain.DomainName)
 	err = n.request("POST", url, resq, resp)
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		return
 	}
-	util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 	return
 }
 
 func (n *NameCom) update(record NameComRecordResp, domain *config.Domain, ipAddr, recordType string) (err error) {
 	if record.Answer == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 	record.Answer = ipAddr
@@ -148,10 +148,10 @@ func (n *NameCom) update(record NameComRecordResp, domain *config.Domain, ipAddr
 	url := fmt.Sprintf(updateRecord, domain.DomainName, record.Id)
 	err = n.request("PUT", url, record, nil)
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		return
 	}
-	util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 	return
 }
 

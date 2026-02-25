@@ -10,7 +10,7 @@ import (
 // DNS interface
 type DNS interface {
 	Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache)
-	// 添加或更新IPv4/IPv6记录
+	// add or update IPv4/IPv6 records
 	AddUpdateDomainRecords() (domains config.Domains)
 }
 
@@ -36,7 +36,7 @@ var (
 	Ipcache = [][2]util.IpCache{}
 )
 
-// RunTimer 定时运行
+// RunTimer run periodically
 func RunTimer(delay time.Duration) {
 	for {
 		RunOnce()
@@ -117,7 +117,7 @@ func RunOnce() {
 		domains := dnsSelected.AddUpdateDomainRecords()
 		// webhook
 		v4Status, v6Status := config.ExecWebhook(&domains, &conf)
-		// 重置单个cache
+		// cache
 		if v4Status == config.UpdatedFailed {
 			Ipcache[i][0] = util.IpCache{}
 		}

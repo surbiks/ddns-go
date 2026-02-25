@@ -19,7 +19,7 @@ type Asset struct {
 	url  string
 }
 
-// ReleaseResp 表示仓库中的 GitHub release 和 asset。
+// ReleaseResp GitHub release asset
 type ReleaseResp struct {
 	TagName string `json:"tag_name,omitempty"`
 	Assets  []struct {
@@ -28,9 +28,9 @@ type ReleaseResp struct {
 	} `json:"assets,omitempty"`
 }
 
-// getLatest 列出仓库的最新 release 并返回包装过的 Release
+// getLatest release Release
 //
-// GitHub API 文档：https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#get-the-latest-release
+// GitHub API https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#get-the-latest-release
 func getLatest(repo string) (*Release, error) {
 	u := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 
@@ -43,7 +43,7 @@ func getLatest(repo string) (*Release, error) {
 	var result ReleaseResp
 	err = util.GetHTTPResponse(resp, err, &result)
 	if err != nil {
-		util.Log("异常信息: %s", err)
+		util.Log("Exception: %s", err)
 		return nil, err
 	}
 

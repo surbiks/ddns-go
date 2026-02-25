@@ -21,13 +21,13 @@ type NameCheap struct {
 	lastIpv6 string
 }
 
-// NameCheap 修改域名解析结果
+// NameCheap modifyDNS recordresult
 type NameCheapResp struct {
 	Status string
 	Errors []string
 }
 
-// Init 初始化
+// Init
 func (nc *NameCheap) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	nc.Domains.Ipv4Cache = ipv4cache
 	nc.Domains.Ipv6Cache = ipv6cache
@@ -38,7 +38,7 @@ func (nc *NameCheap) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ip
 	nc.Domains.GetNewIp(dnsConf)
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (nc *NameCheap) AddUpdateDomainRecords() config.Domains {
 	nc.addUpdateDomainRecords("A")
 	nc.addUpdateDomainRecords("AAAA")
@@ -52,15 +52,15 @@ func (nc *NameCheap) addUpdateDomainRecords(recordType string) {
 		return
 	}
 
-	// 防止多次发送Webhook通知
+	// Webhooknotification
 	if recordType == "A" {
 		if nc.lastIpv4 == ipAddr {
-			util.Log("你的IPv4未变化, 未触发 %s 请求", "NameCheap")
+			util.Log("Your's IPv4 has not changed, %s request has not been triggered", "NameCheap")
 			return
 		}
 	} else {
 		// https://www.namecheap.com/support/knowledgebase/article.aspx/29/11/how-to-dynamically-update-the-hosts-ip-with-an-http-request/
-		util.Log("Namecheap 不支持更新 IPv6")
+		util.Log("Namecheap does not support IPv6")
 		return
 	}
 
@@ -69,28 +69,28 @@ func (nc *NameCheap) addUpdateDomainRecords(recordType string) {
 	}
 }
 
-// 修改
+// modify
 func (nc *NameCheap) modify(domain *config.Domain, ipAddr string) {
 	var result NameCheapResp
 	err := nc.request(&result, ipAddr, domain)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	switch result.Status {
 	case "Success":
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	default:
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, result.Status)
+		util.Log("Failed to updated domain %s! Result: %s", domain, result.Status)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// request 统一请求接口
+// request shared request method
 func (nc *NameCheap) request(result *NameCheapResp, ipAddr string, domain *config.Domain) (err error) {
 	url := strings.NewReplacer(
 		"#{host}", domain.GetSubDomain(),

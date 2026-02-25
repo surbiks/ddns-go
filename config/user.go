@@ -1,6 +1,6 @@
 package config
 
-// User 登录用户
+// User logged-in user
 type User struct {
 	Username string
 	Password string

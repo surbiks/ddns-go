@@ -23,11 +23,11 @@ type ListExistingRecordsResponse struct {
 }
 
 type Record struct {
-	ID        string  `json:"id"` // 记录ID
+	ID        string  `json:"id"` // record ID
 	Slug      string  `json:"slug"`
-	Name      string  `json:"name"`  // 记录名称
-	Type      string  `json:"type"`  // 记录类型
-	Value     string  `json:"value"` // 记录值
+	Name      string  `json:"name"`  // record name
+	Type      string  `json:"type"`  // record type
+	Value     string  `json:"value"` // record value
 	Creator   string  `json:"creator"`
 	Created   int64   `json:"created"`
 	Updated   int64   `json:"updated"`
@@ -76,7 +76,7 @@ func (v *Vercel) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		records, err = v.listExistingRecords(domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			continue
 		}
 
@@ -92,7 +92,7 @@ func (v *Vercel) addUpdateDomainRecords(recordType string) {
 			err = v.createRecord(domain, recordType, ipAddr)
 		} else {
 			if strings.ToLower(targetRecord.Value) == ipAddr {
-				util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+				util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 				domain.UpdateStatus = config.UpdatedNothing
 				continue
 			} else {
@@ -100,15 +100,15 @@ func (v *Vercel) addUpdateDomainRecords(recordType string) {
 			}
 		}
 
-		operation := "新增"
+		operation := "add"
 		if targetRecord != nil {
-			operation = "更新"
+			operation = "update"
 		}
 		if err == nil {
-			util.Log(operation+"域名解析 %s 成功! IP: %s", domain, ipAddr)
+			util.Log(operation+"DNS record %s success! IP: %s", domain, ipAddr)
 			domain.UpdateStatus = config.UpdatedSuccess
 		} else {
-			util.Log(operation+"域名解析 %s 失败! 异常信息: %s", domain, err)
+			util.Log(operation+"DNS record %s failed! Exception: %s", domain, err)
 			domain.UpdateStatus = config.UpdatedFailed
 		}
 	}
@@ -150,7 +150,7 @@ func (v *Vercel) request(method, api string, data, result interface{}) (err erro
 		payload, _ = json.Marshal(data)
 	}
 
-	// 如果设置了 ExtParam (TeamId)，添加查询参数
+	// ExtParam (TeamId) add parameters
 	if v.DNS.ExtParam != "" {
 		if strings.Contains(api, "?") {
 			api = api + "&teamId=" + v.DNS.ExtParam

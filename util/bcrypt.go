@@ -4,7 +4,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// HashPassword 密码哈希
+// HashPassword
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -13,13 +13,13 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-// PasswordOK 检查密码
+// PasswordOK check
 func PasswordOK(hashedPassword, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
 }
 
-// IsHashedPassword 是否是哈希密码
+// IsHashedPassword
 func IsHashedPassword(password string) bool {
 	_, err := bcrypt.Cost([]byte(password))
 	return err == nil

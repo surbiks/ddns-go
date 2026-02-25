@@ -45,21 +45,21 @@ type PorkbunDomainCreateOrUpdateVO struct {
 	*PorkbunDomainRecord
 }
 
-// Init 初始化
+// Init
 func (pb *Porkbun) Init(conf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	pb.Domains.Ipv4Cache = ipv4cache
 	pb.Domains.Ipv6Cache = ipv6cache
 	pb.DNSConfig = conf.DNS
 	pb.Domains.GetNewIp(conf)
 	if conf.TTL == "" {
-		// 默认600s
+		// default600s
 		pb.TTL = "600"
 	} else {
 		pb.TTL = conf.TTL
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (pb *Porkbun) AddUpdateDomainRecords() config.Domains {
 	pb.addUpdateDomainRecords("A")
 	pb.addUpdateDomainRecords("AAAA")
@@ -75,7 +75,7 @@ func (pb *Porkbun) addUpdateDomainRecords(recordType string) {
 
 	for _, domain := range domains {
 		var record PorkbunDomainQueryResponse
-		// 获取当前域名信息
+		// get current domain info
 		err := pb.request(
 			porkbunEndpoint+fmt.Sprintf("/retrieveByNameType/%s/%s/%s", domain.DomainName, recordType, domain.SubDomain),
 			&PorkbunApiKey{
@@ -86,26 +86,26 @@ func (pb *Porkbun) addUpdateDomainRecords(recordType string) {
 		)
 
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 		if record.Status == "SUCCESS" {
 			if len(record.Records) > 0 {
-				// 存在，更新
+				// update
 				pb.modify(&record, domain, recordType, ipAddr)
 			} else {
-				// 不存在，创建
+				// create
 				pb.create(domain, recordType, ipAddr)
 			}
 		} else {
-			util.Log("在DNS服务商中未找到根域名: %s", domain.DomainName)
+			util.Log("Root domain not found in DNS provider: %s", domain.DomainName)
 			domain.UpdateStatus = config.UpdatedFailed
 		}
 	}
 }
 
-// 创建
+// create
 func (pb *Porkbun) create(domain *config.Domain, recordType string, ipAddr string) {
 	var response PorkbunResponse
 
@@ -127,26 +127,26 @@ func (pb *Porkbun) create(domain *config.Domain, recordType string, ipAddr strin
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if response.Status == "SUCCESS" {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, response.Status)
+		util.Log("Failed to add domain %s! Result: %s", domain, response.Status)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// 修改
+// modify
 func (pb *Porkbun) modify(record *PorkbunDomainQueryResponse, domain *config.Domain, recordType string, ipAddr string) {
 
-	// 相同不修改
+	// skip if unchanged
 	if len(record.Records) > 0 && *record.Records[0].Content == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 
@@ -168,21 +168,21 @@ func (pb *Porkbun) modify(record *PorkbunDomainQueryResponse, domain *config.Dom
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if response.Status == "SUCCESS" {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, response.Status)
+		util.Log("Failed to updated domain %s! Result: %s", domain, response.Status)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// request 统一请求接口
+// request shared request method
 func (pb *Porkbun) request(url string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

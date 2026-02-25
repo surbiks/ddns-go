@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// GenerateToken 生成Token
+// GenerateToken Token
 func GenerateToken(username string) string {
 	key := []byte(generateRandomKey())
 	h := hmac.New(sha256.New, key)
@@ -18,13 +18,13 @@ func GenerateToken(username string) string {
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
-// generateRandomKey 生成随机密钥
+// generateRandomKey generate random key
 func generateRandomKey() string {
-	// 设置随机种子
+	// set random seed
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
 
-	// 生成随机的64位整数
+	// generate random 64-bit integer
 	randomNumber := random.Uint64()
 
 	return fmt.Sprint(randomNumber)

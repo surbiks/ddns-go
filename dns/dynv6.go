@@ -35,21 +35,21 @@ type Dynv6Record struct {
 	Data   string `json:"data"`
 }
 
-// Init 初始化
+// Init
 func (dynv6 *Dynv6) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	dynv6.Domains.Ipv4Cache = ipv4cache
 	dynv6.Domains.Ipv6Cache = ipv6cache
 	dynv6.DNS = dnsConf.DNS
 	dynv6.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认600s
+		// default600s
 		dynv6.TTL = "600"
 	} else {
 		dynv6.TTL = dnsConf.TTL
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (dynv6 *Dynv6) AddUpdateDomainRecords() config.Domains {
 	dynv6.addUpdateDomainRecords("A")
 	dynv6.addUpdateDomainRecords("AAAA")
@@ -67,13 +67,13 @@ func (dynv6 *Dynv6) addUpdateDomainRecords(recordType string) {
 		isFindZone, findZone, isMain, err := dynv6.findZone(domain)
 
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if !isFindZone {
-			util.Log("在DNS服务商中未找到根域名: %s", domain)
+			util.Log("Root domain not found in DNS provider: %s", domain)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
@@ -81,22 +81,22 @@ func (dynv6 *Dynv6) addUpdateDomainRecords(recordType string) {
 		zoneId := strconv.FormatUint(uint64(findZone.ID), 10)
 
 		if isMain {
-			// 如果使用的域名是主域名，对比DNS记录确定是否调用更新接口
+			// domain domain DNSrecord update
 			if (recordType == "A" && findZone.Ipv4 == ipAddr) || (recordType == "AAAA" && findZone.Ipv6 == ipAddr) {
-				// ip与dns服务器一致，不执行更新
-				util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+				// ip dnsservice update
+				util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 				domain.UpdateStatus = config.UpdatedNothing
 			} else {
 				dynv6.modifyMain(domain, zoneId, recordType, ipAddr)
 			}
 		} else {
-			// 如果是子域名，检查是否有该子域名记录，有就更新记录，没有就创建
+			// domain check domainrecord updaterecord create
 
-			// 处理subDomain
+			// handlesubDomain
 			processSubDomainOk := dynv6.processSubDomain(domain, findZone)
 
 			if !processSubDomainOk {
-				util.Log("域名: %s 不正确", domain)
+				util.Log("The domain %s is incorrect", domain)
 				domain.UpdateStatus = config.UpdatedFailed
 				continue
 			}
@@ -104,22 +104,22 @@ func (dynv6 *Dynv6) addUpdateDomainRecords(recordType string) {
 			isFindRecord, findRecord, err := dynv6.findRecord(domain, zoneId, recordType)
 
 			if err != nil {
-				util.Log("查询域名信息发生异常! %s", err)
+				util.Log("Failed to query domain info! %s", err)
 				domain.UpdateStatus = config.UpdatedFailed
 				return
 			}
 
 			if isFindRecord {
-				// 判断是否需要更新
+				// update
 				if findRecord.Type == recordType && findRecord.Data == ipAddr {
-					// ip与dns服务器一致，不执行更新
-					util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+					// ip dnsservice update
+					util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 					domain.UpdateStatus = config.UpdatedNothing
 				} else {
 					dynv6.modify(domain, zoneId, findRecord, recordType, ipAddr)
 				}
 			} else {
-				// 创建记录
+				// createrecord
 				dynv6.create(domain, zoneId, recordType, ipAddr)
 			}
 		}
@@ -127,7 +127,7 @@ func (dynv6 *Dynv6) addUpdateDomainRecords(recordType string) {
 }
 
 func (dynv6 *Dynv6) processSubDomain(domain *config.Domain, zone Dynv6Zone) bool {
-	// 确定subDomain
+	// subDomain
 	subDomainLen := len(domain.String()) - len(zone.Name) - 1
 	if subDomainLen <= 0 {
 		return false
@@ -139,20 +139,20 @@ func (dynv6 *Dynv6) processSubDomain(domain *config.Domain, zone Dynv6Zone) bool
 	return true
 }
 
-// 根据domain获取zone
+// domaingetzone
 func (dynv6 *Dynv6) findZone(domain *config.Domain) (isFind bool, zone Dynv6Zone, isMain bool, err error) {
 	var zones []Dynv6Zone
 	isFind = false
 	isMain = false
 
-	// 获取所有zone
+	// get all zones
 	err = dynv6.request("GET", dynv6Endpoint+"/api/v2/zones", nil, &zones)
 
 	if err != nil {
 		return
 	}
 
-	// 遍历token权限下所有zone，确定当前域名属于哪个zone，并判断当前域名是主域名还是子域名
+	// token zone domain zone domain domain domain
 	for _, z := range zones {
 		if strings.HasSuffix(domain.String(), z.Name) {
 			isFind = true
@@ -167,7 +167,7 @@ func (dynv6 *Dynv6) findZone(domain *config.Domain) (isFind bool, zone Dynv6Zone
 	return
 }
 
-// 根据domain获取record
+// domaingetrecord
 func (dynv6 *Dynv6) findRecord(domain *config.Domain, zoneId string, recordType string) (isFind bool, record Dynv6Record, err error) {
 	var records []Dynv6Record
 	isFind = false
@@ -177,7 +177,7 @@ func (dynv6 *Dynv6) findRecord(domain *config.Domain, zoneId string, recordType 
 		return
 	}
 
-	// 遍历zone下所有record，判断是更新还是创建
+	// zone record update create
 	for _, r := range records {
 		if r.Name == domain.SubDomain && r.Type == recordType {
 			isFind = true
@@ -189,7 +189,7 @@ func (dynv6 *Dynv6) findRecord(domain *config.Domain, zoneId string, recordType 
 	return
 }
 
-// modify 更新根域名
+// modify update domain
 func (dynv6 *Dynv6) modifyMain(domain *config.Domain, zoneId string, recordType string, ipAddr string) {
 	var zoneUpdateReq = Dynv6Zone{}
 	if recordType == "A" {
@@ -201,15 +201,15 @@ func (dynv6 *Dynv6) modifyMain(domain *config.Domain, zoneId string, recordType 
 	err := dynv6.request("PATCH", dynv6Endpoint+"/api/v2/zones/"+zoneId, zoneUpdateReq, &Dynv6Zone{})
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 	} else {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	}
 }
 
-// create 创建新的解析
+// create create parse
 func (dynv6 *Dynv6) create(domain *config.Domain, zoneId string, recordType string, ipAddr string) {
 	recordUpdateReq := Dynv6Record{
 		Name: domain.SubDomain,
@@ -220,15 +220,15 @@ func (dynv6 *Dynv6) create(domain *config.Domain, zoneId string, recordType stri
 	err := dynv6.request("POST", dynv6Endpoint+"/api/v2/zones/"+zoneId+"/records", recordUpdateReq, &Dynv6Record{})
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 	} else {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	}
 }
 
-// modify 更新解析
+// modify updateparse
 func (dynv6 *Dynv6) modify(domain *config.Domain, zoneId string, record Dynv6Record, recordType string, ipAddr string) {
 	record.Type = recordType
 	record.Data = ipAddr
@@ -238,15 +238,15 @@ func (dynv6 *Dynv6) modify(domain *config.Domain, zoneId string, record Dynv6Rec
 	err := dynv6.request("PATCH", dynv6Endpoint+"/api/v2/zones/"+zoneId+"/records/"+recordId, record, &Dynv6Record{})
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 	} else {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	}
 }
 
-// request 统一请求接口
+// request shared request method
 func (dynv6 *Dynv6) request(method string, url string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

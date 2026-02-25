@@ -2,7 +2,7 @@ package util
 
 import "os"
 
-// isTermux 是否在 Termux 中运行
+// isTermux Termux
 //
 // https://wiki.termux.com/wiki/Getting_started
 func isTermux() bool {

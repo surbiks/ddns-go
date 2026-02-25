@@ -16,19 +16,19 @@ type Webhook struct {
 	WebhookHeaders     string
 }
 
-// updateStatusType 更新状态
+// updateStatusType updatestatus
 type updateStatusType string
 
 const (
-	// UpdatedNothing 未改变
-	UpdatedNothing updateStatusType = "未改变"
-	// UpdatedFailed 更新失败
-	UpdatedFailed = "失败"
-	// UpdatedSuccess 更新成功
-	UpdatedSuccess = "成功"
+	// UpdatedNothing no changed
+	UpdatedNothing updateStatusType = "no changed"
+	// UpdatedFailed updatefailed
+	UpdatedFailed = "failed"
+	// UpdatedSuccess updatesuccess
+	UpdatedSuccess = "success"
 )
 
-// 更新失败次数
+// updatefailed
 var updatedFailedTimes = 0
 
 // hasJSONPrefix returns true if the string starts with a JSON open brace.
@@ -36,24 +36,24 @@ func hasJSONPrefix(s string) bool {
 	return strings.HasPrefix(s, "{") || strings.HasPrefix(s, "[")
 }
 
-// ExecWebhook 添加或更新IPv4/IPv6记录, 返回是否有更新失败的
+// ExecWebhook add or update IPv4/IPv6 records, updatefailed
 func ExecWebhook(domains *Domains, conf *Config) (v4Status updateStatusType, v6Status updateStatusType) {
 	v4Status = getDomainsStatus(domains.Ipv4Domains)
 	v6Status = getDomainsStatus(domains.Ipv6Domains)
 
 	if conf.WebhookURL != "" && (v4Status != UpdatedNothing || v6Status != UpdatedNothing) {
-		// 第3次失败才触发一次webhook
+		// 3 failed webhook
 		if v4Status == UpdatedFailed || v6Status == UpdatedFailed {
 			updatedFailedTimes++
 			if updatedFailedTimes != 3 {
-				util.Log("将不会触发Webhook, 仅在第 3 次失败时触发一次Webhook, 当前失败次数：%d", updatedFailedTimes)
+				util.Log("Webhook will not be triggered, only trigger once when the third failure, current failure times: %d", updatedFailedTimes)
 				return
 			}
 		} else {
 			updatedFailedTimes = 0
 		}
 
-		// 成功和失败都要触发webhook
+		// success failed webhook
 		method := "GET"
 		postPara := ""
 		contentType := "application/x-www-form-urlencoded"
@@ -63,14 +63,14 @@ func ExecWebhook(domains *Domains, conf *Config) (v4Status updateStatusType, v6S
 			if json.Valid([]byte(postPara)) {
 				contentType = "application/json"
 			} else if hasJSONPrefix(postPara) {
-				// 如果 RequestBody 的 JSON 无效但前缀为 JSON，提示无效
-				util.Log("Webhook中的 RequestBody JSON 无效")
+				// RequestBody JSON JSON
+				util.Log("Webhook RequestBody JSON is invalid")
 			}
 		}
 		requestURL := replacePara(domains, conf.WebhookURL, v4Status, v6Status)
 		u, err := url.Parse(requestURL)
 		if err != nil {
-			util.Log("Webhook配置中的URL不正确")
+			util.Log("Webhook url is incorrect")
 			return
 		}
 
@@ -79,7 +79,7 @@ func ExecWebhook(domains *Domains, conf *Config) (v4Status updateStatusType, v6S
 
 		req, err := http.NewRequest(method, u.String(), strings.NewReader(postPara))
 		if err != nil {
-			util.Log("Webhook调用失败! 异常信息：%s", err)
+			util.Log("Failed to call Webhook! Exception: %s", err)
 			return
 		}
 
@@ -93,21 +93,21 @@ func ExecWebhook(domains *Domains, conf *Config) (v4Status updateStatusType, v6S
 		resp, err := clt.Do(req)
 		body, err := util.GetHTTPResponseOrg(resp, err)
 		if err == nil {
-			util.Log("Webhook调用成功! 返回数据：%s", string(body))
+			util.Log("Successfully called Webhook! Response body: %s", string(body))
 		} else {
-			util.Log("Webhook调用失败! 异常信息：%s", err)
+			util.Log("Failed to call Webhook! Exception: %s", err)
 		}
 	}
 	return
 }
 
-// getDomainsStatus 获取域名状态
+// getDomainsStatus get domain status
 func getDomainsStatus(domains []*Domain) updateStatusType {
 	successNum := 0
 	for _, v46 := range domains {
 		switch v46.UpdateStatus {
 		case UpdatedFailed:
-			// 一个失败，全部失败
+			// failed failed
 			return UpdatedFailed
 		case UpdatedSuccess:
 			successNum++
@@ -115,13 +115,13 @@ func getDomainsStatus(domains []*Domain) updateStatusType {
 	}
 
 	if successNum > 0 {
-		// 迭代完成后一个成功，就成功
+		// success success
 		return UpdatedSuccess
 	}
 	return UpdatedNothing
 }
 
-// replacePara 替换参数
+// replacePara parameters
 func replacePara(domains *Domains, orgPara string, ipv4Result updateStatusType, ipv6Result updateStatusType) string {
 	return strings.NewReplacer(
 		"#{ipv4Addr}", domains.Ipv4Addr,
@@ -133,7 +133,7 @@ func replacePara(domains *Domains, orgPara string, ipv4Result updateStatusType, 
 	).Replace(orgPara)
 }
 
-// getDomainsStr 用逗号分割域名
+// getDomainsStr domain
 func getDomainsStr(domains []*Domain) string {
 	str := ""
 	for i, v46 := range domains {
@@ -161,7 +161,7 @@ func extractHeaders(s string) map[string]string {
 
 		parts := strings.Split(line, ":")
 		if len(parts) != 2 {
-			util.Log("Webhook Header不正确: %s", line)
+			util.Log("Webhook header is invalid: %s", line)
 			continue
 		}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/jeessy2/ddns-go/v6/util"
 )
 
-// Save 保存
+// Save save
 func Save(writer http.ResponseWriter, request *http.Request) {
 	result := checkAndSave(request)
 	dnsConfJsonStr := "[]"
@@ -26,7 +26,7 @@ func Save(writer http.ResponseWriter, request *http.Request) {
 func checkAndSave(request *http.Request) string {
 	conf, _ := config.GetConfigCached()
 
-	// 从请求中读取 JSON 数据
+	// read JSON data from request
 	var data struct {
 		Username           string       `json:"Username"`
 		Password           string       `json:"Password"`
@@ -37,15 +37,15 @@ func checkAndSave(request *http.Request) string {
 		DnsConf            []dnsConf4JS `json:"DnsConf"`
 	}
 
-	// 解析请求中的 JSON 数据
+	// parserequest JSON data
 	err := json.NewDecoder(request.Body).Decode(&data)
 	if err != nil {
-		return util.LogStr("数据解析失败, 请刷新页面重试")
+		return util.LogStr("Data parsing failed, please refresh the page and try again")
 	}
 	usernameNew := strings.TrimSpace(data.Username)
 	passwordNew := data.Password
 
-	// 国际化
+	//
 	accept := request.Header.Get("Accept-Language")
 	conf.Lang = util.InitLogLang(accept)
 
@@ -54,7 +54,7 @@ func checkAndSave(request *http.Request) string {
 	conf.WebhookRequestBody = strings.TrimSpace(data.WebhookRequestBody)
 	conf.WebhookHeaders = strings.TrimSpace(data.WebhookHeaders)
 
-	// 如果新密码不为空则检查是否够强, 内/外网要求强度不同
+	// check , /
 	conf.Username = usernameNew
 	if passwordNew != "" {
 		hashedPwd, err := conf.CheckPassword(passwordNew)
@@ -64,9 +64,9 @@ func checkAndSave(request *http.Request) string {
 		conf.Password = hashedPwd
 	}
 
-	// 帐号密码不能为空
+	// username/password cannot be empty
 	if conf.Username == "" || conf.Password == "" {
-		return util.LogStr("必须输入用户名/密码")
+		return util.LogStr("Username/Password is required")
 	}
 
 	dnsConfFromJS := data.DnsConf
@@ -77,14 +77,14 @@ func checkAndSave(request *http.Request) string {
 			continue
 		}
 		dnsConf := config.DnsConfig{Name: v.Name, TTL: v.TTL}
-		// 覆盖以前的配置
+		// config
 		dnsConf.DNS.Name = v.DnsName
 		dnsConf.DNS.ID = strings.TrimSpace(v.DnsID)
 		dnsConf.DNS.Secret = strings.TrimSpace(v.DnsSecret)
 		dnsConf.DNS.ExtParam = strings.TrimSpace(v.DnsExtParam)
 
 		if v.Ipv4Domains == "" && v.Ipv6Domains == "" {
-			util.Log("第 %s 个配置未填写域名", util.Ordinal(k+1, conf.Lang))
+			util.Log("The %s config does not fill in the domain", util.Ordinal(k+1, conf.Lang))
 		}
 
 		dnsConf.Ipv4.Enable = v.Ipv4Enable
@@ -117,14 +117,14 @@ func checkAndSave(request *http.Request) string {
 	}
 	conf.DnsConf = dnsConfArray
 
-	// 保存到用户目录
+	// save
 	err = conf.SaveConfig()
 
-	// 只运行一次
+	//
 	util.ForceCompareGlobal = true
 	go dns.RunOnce()
 
-	// 回写错误信息
+	//
 	if err != nil {
 		return err.Error()
 	}

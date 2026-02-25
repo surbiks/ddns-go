@@ -8,25 +8,25 @@ import (
 	"github.com/jeessy2/ddns-go/v6/util"
 )
 
-// TrafficRoute 火山引擎DNS服务
+// TrafficRoute DNSservice
 type TrafficRoute struct {
 	DNS     config.DNS
 	Domains config.Domains
 	TTL     int
 }
 
-// TrafficRouteMeta 解析记录
+// TrafficRouteMeta parserecord
 type TrafficRouteMeta struct {
-	ZID      int    `json:"ZID"`      // 域名ID
-	RecordID string `json:"RecordID"` // 解析记录ID
-	Host     string `json:"Host"`     // 主机记录
-	Type     string `json:"Type"`     // 记录类型
-	Value    string `json:"Value"`    // 记录值
-	TTL      int    `json:"TTL"`      // TTL值
-	Line     string `json:"Line"`     // 解析线路
+	ZID      int    `json:"ZID"`      // domainID
+	RecordID string `json:"RecordID"` // parserecord ID
+	Host     string `json:"Host"`     // record
+	Type     string `json:"Type"`     // record type
+	Value    string `json:"Value"`    // record value
+	TTL      int    `json:"TTL"`      // TTL
+	Line     string `json:"Line"`     // parse
 }
 
-// TrafficRouteResp API响应通用结构
+// TrafficRouteResp APIresponse
 type TrafficRouteResp struct {
 	ResponseMetadata struct {
 		RequestId string `json:"RequestId"`
@@ -40,7 +40,7 @@ type TrafficRouteResp struct {
 		} `json:"Error"`
 	} `json:"ResponseMetadata"`
 	Result struct {
-		// 域名列表相关字段
+		// domain
 		Zones []struct {
 			ZID         int    `json:"ZID"`
 			ZoneName    string `json:"ZoneName"`
@@ -48,24 +48,24 @@ type TrafficRouteResp struct {
 		} `json:"Zones,omitempty"`
 		Total int `json:"Total,omitempty"`
 
-		// 解析记录相关字段
+		// parserecord
 		Records    []TrafficRouteMeta `json:"Records,omitempty"`
 		TotalCount int                `json:"TotalCount,omitempty"`
 
-		// 创建/更新记录相关字段
+		// create/updaterecord
 		RecordID string `json:"RecordID,omitempty"`
 		Status   bool   `json:"Status,omitempty"`
 	} `json:"Result"`
 }
 
-// TrafficRouteListZonesParams ListZones查询参数
+// TrafficRouteListZonesParams ListZones parameters
 type TrafficRouteListZonesParams struct {
-	Key string `json:"Key,omitempty"` // 获取包含特定关键字的域名(默认模糊搜索)
+	Key string `json:"Key,omitempty"` // get domain(default )
 }
 
 // TrafficRouteListZonesResp
 type TrafficRouteListZonesResp struct {
-	ZID int `json:"ZID"` // 域名ID
+	ZID int `json:"ZID"` // domainID
 }
 
 func (tr *TrafficRoute) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
@@ -85,7 +85,7 @@ func (tr *TrafficRoute) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache,
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (tr *TrafficRoute) AddUpdateDomainRecords() config.Domains {
 	tr.addUpdateDomainRecords("A")
 	tr.addUpdateDomainRecords("AAAA")
@@ -133,7 +133,7 @@ func (tr *TrafficRoute) addUpdateDomainRecords(recordType string) {
 	}
 }
 
-// getZID 获取域名的ZID
+// getZID getdomain ZID
 func (tr *TrafficRoute) getZID(domain *config.Domain, resp *TrafficRouteListZonesResp) {
 	var result TrafficRouteResp
 	err := tr.request(
@@ -144,13 +144,13 @@ func (tr *TrafficRoute) getZID(domain *config.Domain, resp *TrafficRouteListZone
 	)
 
 	if err != nil {
-		util.Log("查询域名信息发生异常! %s", err)
+		util.Log("Failed to query domain info! %s", err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if len(result.Result.Zones) == 0 {
-		util.Log("在DNS服务商中未找到域名: %s", domain.DomainName)
+		util.Log("Domain not found in DNS provider: %s", domain.DomainName)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
@@ -163,7 +163,7 @@ func (tr *TrafficRoute) getZID(domain *config.Domain, resp *TrafficRouteListZone
 	}
 }
 
-// create 添加解析记录
+// create addparserecord
 func (tr *TrafficRoute) create(zoneID int, domain *config.Domain, recordType, ipAddr string) {
 	record := &TrafficRouteMeta{
 		ZID:   zoneID,
@@ -183,24 +183,24 @@ func (tr *TrafficRoute) create(zoneID int, domain *config.Domain, recordType, ip
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if result.ResponseMetadata.Error.Code == "" {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, result.ResponseMetadata.Error.Message)
+		util.Log("Failed to add domain %s! Result: %s", domain, result.ResponseMetadata.Error.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// modify 修改解析记录
+// modify modifyparserecord
 func (tr *TrafficRoute) modify(record TrafficRouteMeta, domain *config.Domain, ipAddr string) {
 	if record.Value == ipAddr {
-		util.Log("IP %s 没有变化，域名 %s", ipAddr, domain)
+		util.Log("IP %s has not changed, domain %s", ipAddr, domain)
 		domain.UpdateStatus = config.UpdatedNothing
 		return
 	}
@@ -217,21 +217,21 @@ func (tr *TrafficRoute) modify(record TrafficRouteMeta, domain *config.Domain, i
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if result.ResponseMetadata.Error.Code == "" {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, result.ResponseMetadata.Error.Message)
+		util.Log("Failed to updated domain %s! Result: %s", domain, result.ResponseMetadata.Error.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// parseRequestParams 解析请求参数
+// parseRequestParams parserequestparameters
 func (tr *TrafficRoute) parseRequestParams(action string, data interface{}) (queryParams map[string][]string, jsonStr []byte, err error) {
 	queryParams = make(map[string][]string)
 
@@ -247,7 +247,7 @@ func (tr *TrafficRoute) parseRequestParams(action string, data interface{}) (que
 		}
 	}
 
-	// 根据不同action处理参数
+	// actionhandleparameters
 	switch action {
 	case "ListZones":
 		if len(queryParams) == 0 && len(jsonStr) > 0 {
@@ -270,7 +270,7 @@ func (tr *TrafficRoute) parseRequestParams(action string, data interface{}) (que
 	return
 }
 
-// request 统一请求接口
+// request shared request method
 func (tr *TrafficRoute) request(method string, action string, data interface{}, result interface{}) error {
 	queryParams, jsonStr, err := tr.parseRequestParams(action, data)
 	if err != nil {

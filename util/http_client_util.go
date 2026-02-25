@@ -81,7 +81,7 @@ func CreateNoProxyHTTPClient(network string) *http.Client {
 	}
 }
 
-// SetInsecureSkipVerify 将所有 http.Transport 的 InsecureSkipVerify 设置为 true
+// SetInsecureSkipVerify http.Transport InsecureSkipVerify true
 func SetInsecureSkipVerify() {
 	transports := []*http.Transport{defaultTransport, noProxyTcp4Transport, noProxyTcp6Transport}
 

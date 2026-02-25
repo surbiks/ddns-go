@@ -40,9 +40,9 @@ func PercentEncode(value string) string {
 	if value == "" {
 		return ""
 	}
-	// 使用Go标准库进行URL编码
+	// Go URL
 	encoded := url.QueryEscape(value)
-	// 按照RFC3986规则调整编码
+	// RFC3986
 	encoded = strings.ReplaceAll(encoded, "+", "%20")
 	encoded = strings.ReplaceAll(encoded, "*", "%2A")
 	encoded = strings.ReplaceAll(encoded, "%7E", "~")

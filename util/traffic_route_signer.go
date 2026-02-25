@@ -17,23 +17,21 @@ const Service = "DNS"
 const Region = "cn-north-1"
 const Host = "open.volcengineapi.com"
 
-// 第一步：准备辅助函数。
-// sha256非对称加密
+// sha256
 func hmacSHA256(key []byte, content string) []byte {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(content))
 	return mac.Sum(nil)
 }
 
-// sha256 hash算法
+// sha256 hash
 func hashSHA256(content []byte) string {
 	h := sha256.New()
 	h.Write(content)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// 第二步：准备需要用到的结构体定义。
-// 签算请求结构体
+// request
 type RequestParam struct {
 	Body      []byte
 	Method    string
@@ -43,7 +41,6 @@ type RequestParam struct {
 	QueryList url.Values
 }
 
-// 身份证明结构体
 type Credentials struct {
 	AccessKeyID     string
 	SecretAccessKey string
@@ -51,7 +48,7 @@ type Credentials struct {
 	Region          string
 }
 
-// 签算结果结构体
+// result
 type SignRequest struct {
 	XDate          string
 	Host           string
@@ -60,10 +57,10 @@ type SignRequest struct {
 	Authorization  string
 }
 
-// 第三步：创建一个 DNS 的 API 请求函数。签名计算的过程包含在该函数中。
+// create DNS API request
 func TrafficRouteSigner(method string, query map[string][]string, header map[string]string, ak string, sk string, action string, body []byte) (*http.Request, error) {
-	// 第四步：在requestDNS中，创建一个 HTTP 请求实例。
-	// 创建 HTTP 请求实例。该实例会在后续用到。
+	// requestDNS create HTTP request
+	// create HTTP request
 	request, _ := http.NewRequest(method, "https://"+Host+"/", bytes.NewReader(body))
 	urlVales := url.Values{}
 	for k, v := range query {
@@ -75,15 +72,15 @@ func TrafficRouteSigner(method string, query map[string][]string, header map[str
 	for k, v := range header {
 		request.Header.Set(k, v)
 	}
-	// 第五步：创建身份证明。其中的 Service 和 Region 字段是固定的。ak 和 sk 分别代表 AccessKeyID 和 SecretAccessKey。同时需要初始化签名结构体。一些签名计算时需要的属性也在这里处理。
-	// 初始化身份证明
+	// create Service Region ak sk AccessKeyID SecretAccessKey handle
+	//
 	credential := Credentials{
 		AccessKeyID:     ak,
 		SecretAccessKey: sk,
 		Service:         Service,
 		Region:          Region,
 	}
-	// 初始化签名结构体
+	//
 	requestParam := RequestParam{
 		Body:      body,
 		Host:      request.Host,
@@ -92,19 +89,19 @@ func TrafficRouteSigner(method string, query map[string][]string, header map[str
 		Date:      time.Now().UTC(),
 		QueryList: request.URL.Query(),
 	}
-	// 第六步：接下来开始计算签名。在计算签名前，先准备好用于接收签算结果的 signResult 变量，并设置一些参数。
-	// 初始化签名结果的结构体
+	// result signResult parameters
+	// result
 	xDate := requestParam.Date.Format("20060102T150405Z")
 	shortXDate := xDate[:8]
 	XContentSha256 := hashSHA256(requestParam.Body)
 	contentType := "application/json"
 	signResult := SignRequest{
-		Host:           requestParam.Host, // 设置Host
-		XContentSha256: XContentSha256,    // 加密body
-		XDate:          xDate,             // 设置标准化时间
-		ContentType:    contentType,       // 设置Content-Type 为 application/json
+		Host:           requestParam.Host, // Host
+		XContentSha256: XContentSha256,    // body
+		XDate:          xDate,             //
+		ContentType:    contentType,       // Content-Type application/json
 	}
-	// 第七步：计算 Signature 签名。
+	// Signature
 	signedHeadersStr := strings.Join([]string{"content-type", "host", "x-content-sha256", "x-date"}, ";")
 	canonicalRequestStr := strings.Join([]string{
 		requestParam.Method,
@@ -129,8 +126,8 @@ func TrafficRouteSigner(method string, query map[string][]string, header map[str
 	kSigning := hmacSHA256(kService, "request")
 	signature := hex.EncodeToString(hmacSHA256(kSigning, stringToSign))
 	signResult.Authorization = fmt.Sprintf("HMAC-SHA256 Credential=%s, SignedHeaders=%s, Signature=%s", credential.AccessKeyID+"/"+credentialScope, signedHeadersStr, signature)
-	// 第八步：将 Signature 签名写入HTTP Header 中，并发送 HTTP 请求。
-	// 设置经过签名的5个HTTP Header
+	// Signature HTTP Header HTTP request
+	// set 5 signed HTTP headers
 	request.Header.Set("Host", signResult.Host)
 	request.Header.Set("Content-Type", signResult.ContentType)
 	request.Header.Set("X-Date", signResult.XDate)

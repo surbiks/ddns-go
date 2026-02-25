@@ -46,7 +46,7 @@ func BaiduSigner(accessKeyID, accessSecret string, r *http.Request) {
 	baiduCanonicalURL := BaiduCanonicalURI(r)
 
 	//format: HTTP Method + "\n" + CanonicalURI + "\n" + CanonicalQueryString + "\n" + CanonicalHeaders
-	//由于仅仅调用三个POST接口且不会更改，这里CanonicalQueryString和CanonicalHeaders直接写死
+	// POST CanonicalQueryString CanonicalHeaders
 	CanonicalReq := fmt.Sprintf("%s\n%s\n%s\n%s", r.Method, baiduCanonicalURL, "", "host:bcd.baidubce.com")
 
 	signingKey := HmacSha256Hex(accessSecret, authStringPrefix)

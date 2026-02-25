@@ -7,12 +7,12 @@ import (
 
 // Result Result
 type Result struct {
-	Code int         // 状态
-	Msg  string      // 消息
-	Data interface{} // 数据
+	Code int         // status
+	Msg  string      // message
+	Data interface{} // data
 }
 
-// returnError 返回错误信息
+// returnError return error message
 func returnError(w http.ResponseWriter, msg string) {
 	result := &Result{}
 
@@ -22,7 +22,7 @@ func returnError(w http.ResponseWriter, msg string) {
 	json.NewEncoder(w).Encode(result)
 }
 
-// returnOK	返回成功信息
+// returnOK	return success message
 func returnOK(w http.ResponseWriter, msg string, data interface{}) {
 	result := &Result{}
 

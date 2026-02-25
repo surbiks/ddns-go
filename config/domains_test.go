@@ -50,7 +50,7 @@ func TestToASCII(t *testing.T) {
 	}
 }
 
-// TestParseDomainArr 测试 parseDomainArr
+// TestParseDomainArr test parseDomainArr
 func TestParseDomainArr(t *testing.T) {
 	domains := []string{"mydomain.com", "test.mydomain.com", "test2.test.mydomain.com", "mydomain.com.mydomain.com", "mydomain.com.cn",
 		"test.mydomain.com.cn", "test:mydomain.com.cn",
@@ -74,7 +74,7 @@ func TestParseDomainArr(t *testing.T) {
 		if parsedDomains[i].DomainName != result[i].DomainName ||
 			parsedDomains[i].SubDomain != result[i].SubDomain ||
 			parsedDomains[i].CustomParams != result[i].CustomParams {
-			t.Errorf("解析 %s 失败：\n期待 DomainName：%s，得到 DomainName：%s\n期待 SubDomain：%s，得到 SubDomain：%s\n期待 CustomParams：%s，得到 CustomParams：%s",
+			t.Errorf("parse %s failed:\nexpected DomainName: %s, got DomainName: %s\nexpected SubDomain: %s, got SubDomain: %s\nexpected CustomParams: %s, got CustomParams: %s",
 				parsedDomains[i].String(),
 				result[i].DomainName, parsedDomains[i].DomainName,
 				result[i].SubDomain, parsedDomains[i].SubDomain,

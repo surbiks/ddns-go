@@ -17,7 +17,7 @@ var writingEmbedFile embed.FS
 
 const VersionEnv = "DDNS_GO_VERSION"
 
-// js中的dns配置
+// js dnsconfig
 type dnsConf4JS struct {
 	Name             string
 	DnsName          string
@@ -40,7 +40,7 @@ type dnsConf4JS struct {
 	Ipv6Domains      string
 }
 
-// Writing 填写信息
+// Writing
 func Writing(writer http.ResponseWriter, request *http.Request) {
 	tmpl, err := template.ParseFS(writingEmbedFile, "writing.html")
 	if err != nil {
@@ -50,7 +50,7 @@ func Writing(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	conf, err := config.GetConfigCached()
-	// 默认禁止公网访问
+	// defaultdeny public network access
 	if err != nil {
 		conf.NotAllowWanAccess = true
 	}
@@ -83,7 +83,7 @@ func Writing(writer http.ResponseWriter, request *http.Request) {
 func getDnsConfStr(dnsConf []config.DnsConfig) string {
 	dnsConfArray := []dnsConf4JS{}
 	for _, conf := range dnsConf {
-		// 已存在配置文件，隐藏真实的ID、Secret
+		// configfile ID Secret
 		idHide, secretHide := getHideIDSecret(&conf)
 		dnsConfArray = append(dnsConfArray, dnsConf4JS{
 			Name:             conf.Name,
@@ -111,10 +111,9 @@ func getDnsConfStr(dnsConf []config.DnsConfig) string {
 	return string(byt)
 }
 
-// 显示的数量
 const displayCount int = 3
 
-// hideIDSecret 隐藏真实的ID、Secret
+// hideIDSecret ID Secret
 func getHideIDSecret(conf *config.DnsConfig) (idHide string, secretHide string) {
 	if len(conf.DNS.ID) > displayCount && conf.DNS.Name != "callback" {
 		idHide = conf.DNS.ID[:displayCount] + strings.Repeat("*", len(conf.DNS.ID)-displayCount)

@@ -23,18 +23,18 @@ func WaitInternet(addresses []string) {
 			// Internet is connected.
 			if err == nil {
 				if failed {
-					Log("网络已连接")
+					Log("The network is connected")
 				}
 				return
 			}
 
 			failed = true
-			Log("等待网络连接: %s", err)
-			Log("%s 后重试...", delay)
+			Log("Waiting for network connection: %s", err)
+			Log("Retry after %s", delay)
 
 			if isDNSErr(err) || retryTimes > 0 {
 				dns := BackupDNS[retryTimes%len(BackupDNS)]
-				Log("本机DNS异常! 将默认使用 %s, 可参考文档通过 -dns 自定义 DNS 服务器", dns)
+				Log("Local DNS exception! Will use %s by default, you can use -dns to customize DNS server", dns)
 				SetDNS(dns)
 				retryTimes = retryTimes + 1
 			}

@@ -16,7 +16,7 @@ func WebhookTest(writer http.ResponseWriter, request *http.Request) {
 	}
 	err := json.NewDecoder(request.Body).Decode(&data)
 	if err != nil {
-		util.Log("数据解析失败, 请刷新页面重试")
+		util.Log("Data parsing failed, please refresh the page and try again")
 		return
 	}
 
@@ -25,7 +25,7 @@ func WebhookTest(writer http.ResponseWriter, request *http.Request) {
 	headers := data.Headers
 
 	if url == "" {
-		util.Log("请输入Webhook的URL")
+		util.Log("Please enter the Webhook url")
 		return
 	}
 

@@ -12,7 +12,7 @@ const (
 	maxARM = 7
 )
 
-// generateAdditionalArch 可以根据 CPU 类型使用
+// generateAdditionalArch CPU type
 func generateAdditionalArch() []string {
 	if runtime.GOARCH == "arm" && goarm >= minARM && goarm <= maxARM {
 		additionalArch := make([]string, 0, maxARM-minARM)

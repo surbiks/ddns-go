@@ -55,15 +55,15 @@ func (g *GoDaddyDNS) updateDomainRecord(recordType string, ipAddr string, domain
 		return
 	}
 
-	// 防止多次发送Webhook通知
+	// Webhooknotification
 	if recordType == "A" {
 		if g.lastIpv4 == ipAddr {
-			util.Log("你的IPv4未变化, 未触发 %s 请求", "godaddy")
+			util.Log("Your's IPv4 has not changed, %s request has not been triggered", "godaddy")
 			return
 		}
 	} else {
 		if g.lastIpv6 == ipAddr {
-			util.Log("你的IPv6未变化, 未触发 %s 请求", "godaddy")
+			util.Log("Your's IPv6 has not changed, %s request has not been triggered", "godaddy")
 			return
 		}
 	}
@@ -76,10 +76,10 @@ func (g *GoDaddyDNS) updateDomainRecord(recordType string, ipAddr string, domain
 			Type: recordType,
 		}})
 		if err == nil {
-			util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+			util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 			domain.UpdateStatus = config.UpdatedSuccess
 		} else {
-			util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+			util.Log("Failed to updated domain %s! Result: %s", domain, err)
 			domain.UpdateStatus = config.UpdatedFailed
 		}
 	}

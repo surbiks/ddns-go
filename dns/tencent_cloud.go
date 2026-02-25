@@ -15,7 +15,7 @@ const (
 	tencentCloudVersion  = "2021-03-23"
 )
 
-// TencentCloud 腾讯云 DNSPod API 3.0 实现
+// TencentCloud DNSPod API 3.0
 // https://cloud.tencent.com/document/api/1427/56193
 type TencentCloud struct {
 	DNS     config.DNS
@@ -23,24 +23,24 @@ type TencentCloud struct {
 	TTL     int
 }
 
-// TencentCloudRecord 腾讯云记录
+// TencentCloudRecord record
 type TencentCloudRecord struct {
 	Domain string `json:"Domain"`
-	// DescribeRecordList 不需要 SubDomain
+	// DescribeRecordList SubDomain
 	SubDomain string `json:"SubDomain,omitempty"`
-	// CreateRecord/ModifyRecord 不需要 Subdomain
+	// CreateRecord/ModifyRecord Subdomain
 	Subdomain  string `json:"Subdomain,omitempty"`
 	RecordType string `json:"RecordType"`
 	RecordLine string `json:"RecordLine"`
-	// DescribeRecordList 不需要 Value
+	// DescribeRecordList Value
 	Value string `json:"Value,omitempty"`
-	// CreateRecord/DescribeRecordList 不需要 RecordId
+	// CreateRecord/DescribeRecordList RecordId
 	RecordId int64 `json:"RecordId,omitempty"`
-	// DescribeRecordList 不需要 TTL
+	// DescribeRecordList TTL
 	TTL int `json:"TTL,omitempty"`
 }
 
-// TencentCloudRecordListsResp 获取域名的解析记录列表返回结果
+// TencentCloudRecordListsResp response for domain record list
 type TencentCloudRecordListsResp struct {
 	TencentCloudStatus
 	Response struct {
@@ -52,7 +52,7 @@ type TencentCloudRecordListsResp struct {
 	}
 }
 
-// TencentCloudStatus 腾讯云返回状态
+// TencentCloudStatus status
 // https://cloud.tencent.com/document/product/1427/56192
 type TencentCloudStatus struct {
 	Response struct {
@@ -69,7 +69,7 @@ func (tc *TencentCloud) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache,
 	tc.DNS = dnsConf.DNS
 	tc.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认 600s
+		// default 600s
 		tc.TTL = 600
 	} else {
 		ttl, err := strconv.Atoi(dnsConf.TTL)
@@ -81,7 +81,7 @@ func (tc *TencentCloud) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache,
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新 IPv4/IPv6 记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (tc *TencentCloud) AddUpdateDomainRecords() config.Domains {
 	tc.addUpdateDomainRecords("A")
 	tc.addUpdateDomainRecords("AAAA")
@@ -98,13 +98,13 @@ func (tc *TencentCloud) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		result, err := tc.getRecordList(domain, recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if result.Response.RecordCountInfo.TotalCount > 0 {
-			// 默认第一个
+			// first by default
 			recordSelected := result.Response.RecordList[0]
 			params := domain.GetCustomParams()
 			if params.Has("RecordId") {
@@ -115,16 +115,16 @@ func (tc *TencentCloud) addUpdateDomainRecords(recordType string) {
 				}
 			}
 
-			// 修改记录
+			// modifyrecord
 			tc.modify(recordSelected, domain, recordType, ipAddr)
 		} else {
-			// 添加记录
+			// addrecord
 			tc.create(domain, recordType, ipAddr)
 		}
 	}
 }
 
-// create 添加记录
+// create addrecord
 // CreateRecord https://cloud.tencent.com/document/api/1427/56180
 func (tc *TencentCloud) create(domain *config.Domain, recordType string, ipAddr string) {
 	record := &TencentCloudRecord{
@@ -144,26 +144,26 @@ func (tc *TencentCloud) create(domain *config.Domain, recordType string, ipAddr 
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Response.Error.Code == "" {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, status.Response.Error.Message)
+		util.Log("Failed to add domain %s! Result: %s", domain, status.Response.Error.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// modify 修改记录
+// modify modifyrecord
 // ModifyRecord https://cloud.tencent.com/document/api/1427/56157
 func (tc *TencentCloud) modify(record TencentCloudRecord, domain *config.Domain, recordType string, ipAddr string) {
-	// 相同不修改
+	// skip if unchanged
 	if record.Value == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 	var status TencentCloudStatus
@@ -180,21 +180,21 @@ func (tc *TencentCloud) modify(record TencentCloudRecord, domain *config.Domain,
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Response.Error.Code == "" {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, status.Response.Error.Message)
+		util.Log("Failed to updated domain %s! Result: %s", domain, status.Response.Error.Message)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// getRecordList 获取域名的解析记录列表
+// getRecordList get domain record list
 // DescribeRecordList https://cloud.tencent.com/document/api/1427/56166
 func (tc *TencentCloud) getRecordList(domain *config.Domain, recordType string) (result TencentCloudRecordListsResp, err error) {
 	record := TencentCloudRecord{
@@ -212,15 +212,15 @@ func (tc *TencentCloud) getRecordList(domain *config.Domain, recordType string) 
 	return
 }
 
-// getRecordLine 获取记录线路，为空返回默认
+// getRecordLine get records default
 func (tc *TencentCloud) getRecordLine(domain *config.Domain) string {
 	if domain.GetCustomParams().Has("RecordLine") {
 		return domain.GetCustomParams().Get("RecordLine")
 	}
-	return "默认"
+	return "\u9ed8\u8ba4"
 }
 
-// request 统一请求接口
+// request shared request method
 func (tc *TencentCloud) request(action string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

@@ -7,11 +7,11 @@ import (
 
 const IPCacheTimesENV = "DDNS_IP_CACHE_TIMES"
 
-// IpCache 上次IP缓存
+// IpCache IP
 type IpCache struct {
-	Addr          string // 缓存地址
-	Times         int    // 剩余次数
-	TimesFailedIP int    // 获取ip失败的次数
+	Addr          string // address
+	Times         int    //
+	TimesFailedIP int    // getipfailed
 }
 
 var ForceCompareGlobal = true
@@ -20,7 +20,7 @@ func (d *IpCache) Check(newAddr string) bool {
 	if newAddr == "" {
 		return true
 	}
-	// 地址改变 或 达到剩余次数
+	// address
 	if d.Addr != newAddr || d.Times <= 1 {
 		IPCacheTimes, err := strconv.Atoi(os.Getenv(IPCacheTimesENV))
 		if err != nil {

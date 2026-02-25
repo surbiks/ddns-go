@@ -47,14 +47,14 @@ func (s *Spaceship) AddUpdateDomainRecords() (domains config.Domains) {
 		for _, domain := range domains {
 			hasUpdated, err := s.updateRecord(recordType, ip, domain)
 			if err != nil {
-				util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+				util.Log("Failed to updated domain %s! Result: %s", domain, err)
 				domain.UpdateStatus = config.UpdatedFailed
 				continue
 			}
 			if !hasUpdated {
-				util.Log("你的IP %s 没有变化, 域名 %s", ip, domain)
+				util.Log("Your's IP %s has not changed! Domain: %s", ip, domain)
 			} else {
-				util.Log("更新域名解析 %s 成功! IP: %s", domain, ip)
+				util.Log("Updated domain %s successfully! IP: %s", domain, ip)
 				domain.UpdateStatus = config.UpdatedSuccess
 			}
 		}

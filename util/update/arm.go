@@ -3,7 +3,7 @@
 package update
 
 import (
-	// unsafe 用于从 runtime 包中获取私有变量
+	// unsafe runtime get
 	_ "unsafe"
 )
 

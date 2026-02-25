@@ -14,32 +14,32 @@ import (
 
 const gcoreAPIEndpoint = "https://api.gcore.com/dns/v2"
 
-// Gcore Gcore DNS实现
+// Gcore Gcore DNS
 type Gcore struct {
 	DNS     config.DNS
 	Domains config.Domains
 	TTL     int
 }
 
-// GcoreZoneResponse zones返回结果
+// GcoreZoneResponse zones result
 type GcoreZoneResponse struct {
 	Zones       []GcoreZone `json:"zones"`
 	TotalAmount int         `json:"total_amount"`
 }
 
-// GcoreZone 域名信息
+// GcoreZone domain
 type GcoreZone struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
-// GcoreRRSetListResponse RRSet列表返回结果
+// GcoreRRSetListResponse RRSet result
 type GcoreRRSetListResponse struct {
 	RRSets      []GcoreRRSet `json:"rrsets"`
 	TotalAmount int          `json:"total_amount"`
 }
 
-// GcoreRRSet RRSet记录实体
+// GcoreRRSet RRSetrecord entity
 type GcoreRRSet struct {
 	Name            string                 `json:"name"`
 	Type            string                 `json:"type"`
@@ -48,7 +48,7 @@ type GcoreRRSet struct {
 	Meta            map[string]interface{} `json:"meta,omitempty"`
 }
 
-// GcoreResourceRecord 资源记录
+// GcoreResourceRecord record
 type GcoreResourceRecord struct {
 	Content []interface{}          `json:"content"`
 	Enabled bool                   `json:"enabled"`
@@ -56,28 +56,28 @@ type GcoreResourceRecord struct {
 	Meta    map[string]interface{} `json:"meta,omitempty"`
 }
 
-// GcoreInputRRSet 输入的RRSet
+// GcoreInputRRSet RRSet
 type GcoreInputRRSet struct {
 	TTL             int                        `json:"ttl"`
 	ResourceRecords []GcoreInputResourceRecord `json:"resource_records"`
 	Meta            map[string]interface{}     `json:"meta,omitempty"`
 }
 
-// GcoreInputResourceRecord 输入的资源记录
+// GcoreInputResourceRecord record
 type GcoreInputResourceRecord struct {
 	Content []interface{}          `json:"content"`
 	Enabled bool                   `json:"enabled"`
 	Meta    map[string]interface{} `json:"meta,omitempty"`
 }
 
-// Init 初始化
+// Init
 func (gc *Gcore) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	gc.Domains.Ipv4Cache = ipv4cache
 	gc.Domains.Ipv6Cache = ipv6cache
 	gc.DNS = dnsConf.DNS
 	gc.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认 120 秒（免费版最低值）
+		// default 120
 		gc.TTL = 120
 	} else {
 		ttl, err := strconv.Atoi(dnsConf.TTL)
@@ -89,7 +89,7 @@ func (gc *Gcore) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6ca
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新 IPv4 / IPv6 记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (gc *Gcore) AddUpdateDomainRecords() config.Domains {
 	gc.addUpdateDomainRecords("A")
 	gc.addUpdateDomainRecords("AAAA")
@@ -107,36 +107,36 @@ func (gc *Gcore) addUpdateDomainRecords(recordType string) {
 		// get zone
 		zoneInfo, err := gc.getZoneByDomain(domain)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
 
 		if zoneInfo == nil {
-			util.Log("在DNS服务商中未找到根域名: %s", domain.DomainName)
+			util.Log("Root domain not found in DNS provider: %s", domain.DomainName)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
 
-		// 查询现有记录
+		// record
 		existingRecord, err := gc.getRRSet(zoneInfo.Name, domain.GetSubDomain(), recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
 
 		if existingRecord != nil {
-			// 更新现有记录
+			// update record
 			gc.updateRecord(zoneInfo.Name, domain, recordType, ipAddr, existingRecord)
 		} else {
-			// 创建新记录
+			// create record
 			gc.createRecord(zoneInfo.Name, domain, recordType, ipAddr)
 		}
 	}
 }
 
-// 获取域名对应的Zone信息
+// getdomain Zone
 func (gc *Gcore) getZoneByDomain(domain *config.Domain) (*GcoreZone, error) {
 	var result GcoreZoneResponse
 	params := url.Values{}
@@ -160,7 +160,7 @@ func (gc *Gcore) getZoneByDomain(domain *config.Domain) (*GcoreZone, error) {
 	return nil, nil
 }
 
-// 获取指定的RRSet记录
+// get RRSetrecord
 func (gc *Gcore) getRRSet(zoneName, recordName, recordType string) (*GcoreRRSet, error) {
 	var result GcoreRRSetListResponse
 
@@ -175,7 +175,7 @@ func (gc *Gcore) getRRSet(zoneName, recordName, recordType string) (*GcoreRRSet,
 		return nil, err
 	}
 
-	// 查找匹配的记录
+	// record
 	fullRecordName := recordName
 	if recordName != "" && recordName != "@" {
 		fullRecordName = recordName + "." + zoneName
@@ -192,7 +192,7 @@ func (gc *Gcore) getRRSet(zoneName, recordName, recordType string) (*GcoreRRSet,
 	return nil, nil
 }
 
-// 创建新记录
+// create record
 func (gc *Gcore) createRecord(zoneName string, domain *config.Domain, recordType string, ipAddr string) {
 	recordName := domain.GetSubDomain()
 	if recordName == "" || recordName == "@" {
@@ -220,21 +220,21 @@ func (gc *Gcore) createRecord(zoneName string, domain *config.Domain, recordType
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
-	util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 	domain.UpdateStatus = config.UpdatedSuccess
 }
 
-// 更新现有记录
+// update record
 func (gc *Gcore) updateRecord(zoneName string, domain *config.Domain, recordType string, ipAddr string, existingRecord *GcoreRRSet) {
-	// 检查IP是否相同
+	// checkIP
 	if len(existingRecord.ResourceRecords) > 0 && len(existingRecord.ResourceRecords[0].Content) > 0 {
 		if existingRecord.ResourceRecords[0].Content[0] == ipAddr {
-			util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+			util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 			return
 		}
 	}
@@ -265,16 +265,16 @@ func (gc *Gcore) updateRecord(zoneName string, domain *config.Domain, recordType
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
-	util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 	domain.UpdateStatus = config.UpdatedSuccess
 }
 
-// request 统一请求接口
+// request shared request method
 func (gc *Gcore) request(method string, url string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

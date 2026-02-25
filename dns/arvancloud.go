@@ -74,7 +74,7 @@ func (ac *Arvancloud) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		recordsResp, err := ac.getRecordList(domain, recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			continue
 		}
@@ -107,25 +107,25 @@ func (ac *Arvancloud) create(domain *config.Domain, recordType, ipAddr string) {
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
-	util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 	domain.UpdateStatus = config.UpdatedSuccess
 }
 
 func (ac *Arvancloud) modify(record arvancloudRecord, domain *config.Domain, recordType, ipAddr string) {
 	recordID := getArvancloudRecordID(record.ID)
 	if recordID == "" {
-		util.Log("更新域名解析 %s 失败! 异常信息: empty record id", domain)
+		util.Log("Failed to update DNS record %s! Exception: empty record id", domain)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if getArvancloudRecordIP(record) == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 
@@ -145,12 +145,12 @@ func (ac *Arvancloud) modify(record arvancloudRecord, domain *config.Domain, rec
 	)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
-	util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+	util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 	domain.UpdateStatus = config.UpdatedSuccess
 }
 

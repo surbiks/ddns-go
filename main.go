@@ -24,41 +24,41 @@ import (
 	"github.com/kardianos/service"
 )
 
-// ddns-go 版本
+// ddns-go
 // ddns-go version
 var versionFlag = flag.Bool("v", false, "ddns-go version")
 
-// 更新 ddns-go
+// update ddns-go
 var updateFlag = flag.Bool("u", false, "Upgrade ddns-go to the latest version")
 
-// 监听地址
+// listen address
 var listen = flag.String("l", ":9876", "Listen address")
 
-// 更新频率(秒)
+// update ( )
 var every = flag.Int("f", 300, "Update frequency(seconds)")
 
-// 缓存次数
+// cache times
 var ipCacheTimes = flag.Int("cacheTimes", 5, "Cache times")
 
-// 服务管理
+// service management
 var serviceType = flag.String("s", "", "Service management (install|uninstall|restart)")
 
-// 配置文件路径
+// config file path
 var configFilePath = flag.String("c", util.GetConfigFilePathDefault(), "Custom configuration file path")
 
-// Web 服务
+// Web service
 var noWebService = flag.Bool("noweb", false, "No web service")
 
-// 跳过验证证书
+// verify
 var skipVerify = flag.Bool("skipVerify", false, "Skip certificate verification")
 
-// 自定义 DNS 服务器
+// DNS service
 var customDNS = flag.String("dns", "", "Custom DNS server address, example: 8.8.8.8")
 
-// 重置密码
+// reset password
 var newPassword = flag.String("resetPassword", "", "Reset password to the one entered")
 
-// 后台运行
+// run in background
 var daemonize = flag.Bool("d", false, "Run in background (daemon/detached)")
 
 //go:embed static
@@ -88,36 +88,36 @@ func main() {
 		return
 	}
 
-	// 安卓 go/src/time/zoneinfo_android.go 固定localLoc 为 UTC
+	// go/src/time/zoneinfo_android.go localLoc UTC
 	if runtime.GOOS == "android" {
 		util.FixTimezone()
 	}
-	// 检查监听地址
+	// checklisten address
 	if _, err := net.ResolveTCPAddr("tcp", *listen); err != nil {
 		log.Fatalf("Parse listen address failed! Exception: %s", err)
 	}
-	// 设置版本号
+	// set version
 	os.Setenv(web.VersionEnv, version)
-	// 设置配置文件路径
+	// set config file path
 	if *configFilePath != "" {
 		absPath, _ := filepath.Abs(*configFilePath)
 		os.Setenv(util.ConfigFilePathENV, absPath)
 	}
-	// 重置密码
+	// reset password
 	if *newPassword != "" {
 		conf, err := config.GetConfigCached()
 		if err == nil {
 			conf.ResetPassword(*newPassword)
 		} else {
-			util.Log("配置文件 %s 不存在, 可通过-c指定配置文件", *configFilePath)
+			util.Log("Config file %s does not exist, you can specify the configuration file through -c", *configFilePath)
 		}
 		return
 	}
-	// 设置跳过证书验证
+	// set skip certificate verification
 	if *skipVerify {
 		util.SetInsecureSkipVerify()
 	}
-	// 设置自定义DNS
+	// set custom DNS
 	if *customDNS != "" {
 		util.SetDNS(*customDNS)
 	}
@@ -136,15 +136,15 @@ func main() {
 			s := getService()
 			status, _ := s.Status()
 			if status != service.StatusUnknown {
-				// 以服务方式运行
+				// service
 				s.Run()
 			} else {
-				// 非服务方式运行
+				// service
 				switch s.Platform() {
 				case "windows-service":
-					util.Log("可使用 .\\ddns-go.exe -s install 安装服务运行")
+					util.Log("You can use '.\\ddns-go.exe -s install' to install service")
 				default:
-					util.Log("可使用 sudo ./ddns-go -s install 安装服务运行")
+					util.Log("You can use 'sudo ./ddns-go -s install' to install service")
 				}
 				run()
 			}
@@ -153,15 +153,15 @@ func main() {
 }
 
 func run() {
-	// 兼容之前的配置文件
+	// compatible with previous config file
 	conf, _ := config.GetConfigCached()
 	conf.CompatibleConfig()
-	// 初始化语言
+	// initialize language
 	util.InitLogLang(conf.Lang)
 
 	if !*noWebService {
 		go func() {
-			// 启动web服务
+			// start web service
 			err := runWebServer()
 			if err != nil {
 				log.Println(err)
@@ -171,13 +171,13 @@ func run() {
 		}()
 	}
 
-	// 初始化备用DNS
+	// DNS
 	util.InitBackupDNS(*customDNS, conf.Lang)
 
-	// 等待网络连接
+	// wait for network connection
 	util.WaitInternet(dns.Addresses)
 
-	// 定时运行
+	// run periodically
 	dns.RunTimer(time.Duration(*every) * time.Second)
 }
 
@@ -190,7 +190,7 @@ func faviconFsFunc(writer http.ResponseWriter, request *http.Request) {
 }
 
 func runWebServer() error {
-	// 启动静态文件服务
+	// start static file service
 	http.HandleFunc("/static/", web.AuthAssert(staticFsFunc))
 	http.HandleFunc("/favicon.ico", web.AuthAssert(faviconFsFunc))
 	http.HandleFunc("/login", web.AuthAssert(web.Login))
@@ -203,24 +203,24 @@ func runWebServer() error {
 	http.HandleFunc("/webhookTest", web.Auth(web.WebhookTest))
 	http.HandleFunc("/logout", web.Auth(web.Logout))
 
-	util.Log("监听 %s", *listen)
+	util.Log("Listening on %s", *listen)
 
 	l, err := net.Listen("tcp", *listen)
 	if err != nil {
-		return errors.New(util.LogStr("监听端口发生异常, 请检查端口是否被占用! %s", err))
+		return errors.New(util.LogStr("Port listening failed, please check if the port is occupied! %s", err))
 	}
 
 	return http.Serve(l, nil)
 }
 
-// 以守护/分离进程方式运行（Unix 使用 setsid，Windows 使用 DETACHED_PROCESS）
+// / Unix setsid Windows DETACHED_PROCESS
 func runAsDaemon() error {
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
 
-	// 过滤掉 -d 参数
+	// -d parameters
 	args := make([]string, 0, len(os.Args))
 	args = append(args, exe)
 	for i := 1; i < len(os.Args); i++ {
@@ -230,7 +230,7 @@ func runAsDaemon() error {
 		args = append(args, os.Args[i])
 	}
 
-	// 重定向到系统空设备
+	//
 	nullFile, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 	if err != nil {
 		return err
@@ -264,15 +264,15 @@ func getService() service.Service {
 	options := make(service.KeyValue)
 	var depends []string
 
-	// 确保服务等待网络就绪后再启动
+	// service start
 	switch service.ChosenSystem().String() {
 	case "unix-systemv":
 		options["SysvScript"] = sysvScript
 	case "windows-service":
-		// 将 Windows 服务的启动类型设为自动(延迟启动)
+		// Windows service starttype ( start)
 		options["DelayedAutoStart"] = true
 	default:
-		// 向 Systemd 添加网络依赖
+		// Systemd add
 		depends = append(depends, "Requires=network.target",
 			"After=network-online.target")
 	}
@@ -306,7 +306,7 @@ func getService() service.Service {
 	return s
 }
 
-// 卸载服务
+// uninstall service
 func uninstallService() {
 	s := getService()
 	s.Stop()
@@ -316,22 +316,22 @@ func uninstallService() {
 		}
 	}
 	if err := s.Uninstall(); err == nil {
-		util.Log("ddns-go 服务卸载成功")
+		util.Log("ddns-go service uninstalled successfully")
 	} else {
-		util.Log("ddns-go 服务卸载失败, 异常信息: %s", err)
+		util.Log("ddns-go service uninstall failed, Exception: %s", err)
 	}
 }
 
-// 安装服务
+// install service
 func installService() {
 	s := getService()
 
 	status, err := s.Status()
 	if err != nil && status == service.StatusUnknown {
-		// 服务未知，创建服务
+		// service createservice
 		if err = s.Install(); err == nil {
 			s.Start()
-			util.Log("安装 ddns-go 服务成功! 请打开浏览器并进行配置")
+			util.Log("Installed ddns-go service successfully! Please open the browser and configure it")
 			if service.ChosenSystem().String() == "unix-systemv" {
 				if _, err := exec.Command("/etc/init.d/ddns-go", "enable").Output(); err != nil {
 					log.Println(err)
@@ -342,30 +342,30 @@ func installService() {
 			}
 			return
 		}
-		util.Log("安装 ddns-go 服务失败, 异常信息: %s", err)
+		util.Log("Failed to install ddns-go service, Exception: %s", err)
 	}
 
 	if status != service.StatusUnknown {
-		util.Log("ddns-go 服务已安装, 无需再次安装")
+		util.Log("ddns-go service has been installed, no need to install again")
 	}
 }
 
-// 重启服务
+// restart service
 func restartService() {
 	s := getService()
 	status, err := s.Status()
 	if err == nil {
 		if status == service.StatusRunning {
 			if err = s.Restart(); err == nil {
-				util.Log("重启 ddns-go 服务成功")
+				util.Log("restarted ddns-go service successfully")
 			}
 		} else if status == service.StatusStopped {
 			if err = s.Start(); err == nil {
-				util.Log("启动 ddns-go 服务成功")
+				util.Log("started ddns-go service successfully")
 			}
 		}
 	} else {
-		util.Log("ddns-go 服务未安装, 请先安装服务")
+		util.Log("ddns-go service is not installed, please install the service first")
 	}
 }
 

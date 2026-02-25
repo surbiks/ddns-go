@@ -15,14 +15,14 @@ import (
 
 const zonesAPI = "https://api.cloudflare.com/client/v4/zones"
 
-// Cloudflare Cloudflare实现
+// Cloudflare Cloudflare
 type Cloudflare struct {
 	DNS     config.DNS
 	Domains config.Domains
 	TTL     int
 }
 
-// CloudflareZonesResp cloudflare zones返回结果
+// CloudflareZonesResp cloudflare zones result
 type CloudflareZonesResp struct {
 	CloudflareStatus
 	Result []struct {
@@ -39,7 +39,7 @@ type CloudflareRecordsResp struct {
 	Result []CloudflareRecord
 }
 
-// CloudflareRecord 记录实体
+// CloudflareRecord record entity
 type CloudflareRecord struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
@@ -50,20 +50,20 @@ type CloudflareRecord struct {
 	Comment string `json:"comment"`
 }
 
-// CloudflareStatus 公共状态
+// CloudflareStatus status
 type CloudflareStatus struct {
 	Success  bool
 	Messages []string
 }
 
-// Init 初始化
+// Init
 func (cf *Cloudflare) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	cf.Domains.Ipv4Cache = ipv4cache
 	cf.Domains.Ipv6Cache = ipv6cache
 	cf.DNS = dnsConf.DNS
 	cf.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认1 auto ttl
+		// default1 auto ttl
 		cf.TTL = 1
 	} else {
 		ttl, err := strconv.Atoi(dnsConf.TTL)
@@ -75,7 +75,7 @@ func (cf *Cloudflare) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, i
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (cf *Cloudflare) AddUpdateDomainRecords() config.Domains {
 	cf.addUpdateDomainRecords("A")
 	cf.addUpdateDomainRecords("AAAA")
@@ -94,13 +94,13 @@ func (cf *Cloudflare) addUpdateDomainRecords(recordType string) {
 		result, err := cf.getZones(domain)
 
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if len(result.Result) == 0 {
-			util.Log("在DNS服务商中未找到根域名: %s", domain.DomainName)
+			util.Log("Root domain not found in DNS provider: %s", domain.DomainName)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
@@ -120,7 +120,7 @@ func (cf *Cloudflare) addUpdateDomainRecords(recordType string) {
 		zoneID := result.Result[0].ID
 
 		var records CloudflareRecordsResp
-		// getDomains 最多更新前50条
+		// getDomains update 50
 		err = cf.request(
 			"GET",
 			fmt.Sprintf(zonesAPI+"/%s/dns_records?%s", zoneID, params.Encode()),
@@ -129,28 +129,28 @@ func (cf *Cloudflare) addUpdateDomainRecords(recordType string) {
 		)
 
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if !records.Success {
-			util.Log("查询域名信息发生异常! %s", strings.Join(records.Messages, ", "))
+			util.Log("Failed to query domain info! %s", strings.Join(records.Messages, ", "))
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if len(records.Result) > 0 {
-			// 更新
+			// update
 			cf.modify(records, zoneID, domain, ipAddr)
 		} else {
-			// 新增
+			// add
 			cf.create(zoneID, domain, recordType, ipAddr)
 		}
 	}
 }
 
-// 创建
+// create
 func (cf *Cloudflare) create(zoneID string, domain *config.Domain, recordType string, ipAddr string) {
 	record := &CloudflareRecord{
 		Type:    recordType,
@@ -170,32 +170,32 @@ func (cf *Cloudflare) create(zoneID string, domain *config.Domain, recordType st
 	)
 
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
 
 	if status.Success {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, strings.Join(status.Messages, ", "))
+		util.Log("Failed to add domain %s! Result: %s", domain, strings.Join(status.Messages, ", "))
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// 修改
+// modify
 func (cf *Cloudflare) modify(result CloudflareRecordsResp, zoneID string, domain *config.Domain, ipAddr string) {
 	for _, record := range result.Result {
-		// 相同不修改
+		// skip if unchanged
 		if record.Content == ipAddr {
-			util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+			util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 			continue
 		}
 		var status CloudflareStatus
 		record.Content = ipAddr
 		record.TTL = cf.TTL
-		// 存在参数才修改proxied
+		// parameters modifyproxied
 		if domain.GetCustomParams().Has("proxied") {
 			record.Proxied = domain.GetCustomParams().Get("proxied") == "true"
 		}
@@ -207,22 +207,22 @@ func (cf *Cloudflare) modify(result CloudflareRecordsResp, zoneID string, domain
 		)
 
 		if err != nil {
-			util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+			util.Log("Failed to updated domain %s! Result: %s", domain, err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if status.Success {
-			util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+			util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 			domain.UpdateStatus = config.UpdatedSuccess
 		} else {
-			util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, strings.Join(status.Messages, ", "))
+			util.Log("Failed to updated domain %s! Result: %s", domain, strings.Join(status.Messages, ", "))
 			domain.UpdateStatus = config.UpdatedFailed
 		}
 	}
 }
 
-// 获得域名记录列表
+// get domain record list
 func (cf *Cloudflare) getZones(domain *config.Domain) (result CloudflareZonesResp, err error) {
 	params := url.Values{}
 	params.Set("name", domain.DomainName)
@@ -239,7 +239,7 @@ func (cf *Cloudflare) getZones(domain *config.Domain) (result CloudflareZonesRes
 	return
 }
 
-// request 统一请求接口
+// request shared request method
 func (cf *Cloudflare) request(method string, url string, data interface{}, result interface{}) (err error) {
 	jsonStr := make([]byte, 0)
 	if data != nil {

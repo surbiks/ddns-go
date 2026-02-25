@@ -18,14 +18,14 @@ import (
 )
 
 // https://www.todaynic.com/docApi/
-// Nowcn nowcn DNS实现
+// Nowcn nowcn DNS
 type Nowcn struct {
 	DNS     config.DNS
 	Domains config.Domains
 	TTL     string
 }
 
-// NowcnRecord DNS记录结构
+// NowcnRecord DNSrecord struct
 type NowcnRecord struct {
 	ID     int `json:"id"`
 	Domain string
@@ -37,34 +37,34 @@ type NowcnRecord struct {
 	// Enabled string
 }
 
-// NowcnRecordListResp 记录列表响应
+// NowcnRecordListResp record listresponse
 type NowcnRecordListResp struct {
 	NowcnBaseResult
 	Data []NowcnRecord
 }
 
-// NowcnStatus API响应状态
+// NowcnStatus APIresponsestatus
 type NowcnBaseResult struct {
 	RequestId string `json:"RequestId"`
 	Id        int    `json:"Id"`
 	Error     string `json:"error"`
 }
 
-// Init 初始化
+// Init
 func (nowcn *Nowcn) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	nowcn.Domains.Ipv4Cache = ipv4cache
 	nowcn.Domains.Ipv6Cache = ipv6cache
 	nowcn.DNS = dnsConf.DNS
 	nowcn.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认600s
+		// default600s
 		nowcn.TTL = "600"
 	} else {
 		nowcn.TTL = dnsConf.TTL
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (nowcn *Nowcn) AddUpdateDomainRecords() config.Domains {
 	nowcn.addUpdateDomainRecords("A")
 	nowcn.addUpdateDomainRecords("AAAA")
@@ -81,13 +81,13 @@ func (nowcn *Nowcn) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		result, err := nowcn.getRecordList(domain, recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if len(result.Data) > 0 {
-			// 默认第一个
+			// first by default
 			recordSelected := result.Data[0]
 			params := domain.GetCustomParams()
 			if params.Has("Id") {
@@ -97,16 +97,16 @@ func (nowcn *Nowcn) addUpdateDomainRecords(recordType string) {
 					}
 				}
 			}
-			// 更新
+			// update
 			nowcn.modify(recordSelected, domain, recordType, ipAddr)
 		} else {
-			// 新增
+			// add
 			nowcn.create(domain, recordType, ipAddr)
 		}
 	}
 }
 
-// create 创建DNS记录
+// create createDNSrecord
 func (nowcn *Nowcn) create(domain *config.Domain, recordType string, ipAddr string) {
 	param := map[string]string{
 		"Domain": domain.DomainName,
@@ -117,28 +117,28 @@ func (nowcn *Nowcn) create(domain *config.Domain, recordType string, ipAddr stri
 	}
 	res, err := nowcn.request("/api/Dns/AddDomainRecord", param, "GET")
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err.Error())
+		util.Log("Failed to add domain %s! Result: %s", domain, err.Error())
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 	var result NowcnBaseResult
 	err = json.Unmarshal(res, &result)
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err.Error())
+		util.Log("Failed to add domain %s! Result: %s", domain, err.Error())
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 	if result.Error != "" {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, result.Error)
+		util.Log("Failed to add domain %s! Result: %s", domain, result.Error)
 		domain.UpdateStatus = config.UpdatedFailed
 	} else {
 		domain.UpdateStatus = config.UpdatedSuccess
 	}
 }
 
-// modify 修改DNS记录
+// modify modifyDNSrecord
 func (nowcn *Nowcn) modify(record NowcnRecord, domain *config.Domain, recordType string, ipAddr string) {
-	// 相同不修改
+	// skip if unchanged
 	if record.Value == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 	param := map[string]string{
@@ -151,25 +151,25 @@ func (nowcn *Nowcn) modify(record NowcnRecord, domain *config.Domain, recordType
 	}
 	res, err := nowcn.request("/api/Dns/UpdateDomainRecord", param, "GET")
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err.Error())
+		util.Log("Failed to updated domain %s! Result: %s", domain, err.Error())
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 	var result NowcnBaseResult
 	err = json.Unmarshal(res, &result)
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err.Error())
+		util.Log("Failed to updated domain %s! Result: %s", domain, err.Error())
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 	if result.Error != "" {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, result.Error)
+		util.Log("Failed to updated domain %s! Result: %s", domain, result.Error)
 		domain.UpdateStatus = config.UpdatedFailed
 	} else {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	}
 }
 
-// getRecordList 获取域名记录列表
+// getRecordList get domain record list
 func (nowcn *Nowcn) getRecordList(domain *config.Domain, typ string) (result NowcnRecordListResp, err error) {
 	param := map[string]string{
 		"Domain": domain.DomainName,
@@ -182,44 +182,44 @@ func (nowcn *Nowcn) getRecordList(domain *config.Domain, typ string) (result Now
 }
 
 func (t *Nowcn) sign(params map[string]string, method string) (string, error) {
-	// 添加公共参数
+	// add parameters
 	params["AccessKeyID"] = t.DNS.ID
 	params["SignatureMethod"] = "HMAC-SHA1"
 	params["SignatureNonce"] = fmt.Sprintf("%d", time.Now().UnixNano())
 	params["Timestamp"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
 
-	// 1. 排序参数(按首字母顺序)
+	// 1. sort parameters(alphabetical order)
 	var keys []string
 	for k := range params {
-		if k != "Signature" { // 排除Signature参数
+		if k != "Signature" { // exclude Signature parameter
 			keys = append(keys, k)
 		}
 	}
 	sort.Strings(keys)
 
-	// 2. 构造规范化请求字符串
+	// 2. request
 	var canonicalizedQuery []string
 	for _, k := range keys {
-		// URL编码参数名和参数值
+		// URL-encode parameter names and values
 		encodedKey := util.PercentEncode(k)
 		encodedValue := util.PercentEncode(params[k])
 		canonicalizedQuery = append(canonicalizedQuery, encodedKey+"="+encodedValue)
 	}
 	canonicalizedQueryString := strings.Join(canonicalizedQuery, "&")
 
-	// 3. 构造待签名字符串
+	// 3. build string to sign
 	stringToSign := method + "&" + util.PercentEncode("/") + "&" + util.PercentEncode(canonicalizedQueryString)
 
-	// 4. 计算HMAC-SHA1签名
+	// 4. calculate HMAC-SHA1 signature
 	key := t.DNS.Secret + "&"
 	h := hmac.New(sha1.New, []byte(key))
 	h.Write([]byte(stringToSign))
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
-	// 5. 添加签名到参数中
+	// 5. add parameters
 	params["Signature"] = signature
 
-	// 6. 重新构造最终的查询字符串(包含签名)
+	// 6. rebuild final query string( )
 	keys = append(keys, "Signature")
 	sort.Strings(keys)
 	var finalQuery []string
@@ -233,44 +233,44 @@ func (t *Nowcn) sign(params map[string]string, method string) (string, error) {
 }
 
 func (t *Nowcn) request(apiPath string, params map[string]string, method string) ([]byte, error) {
-	// 生成签名
+	// generate signature
 	queryString, err := t.sign(params, method)
 	if err != nil {
-		return nil, fmt.Errorf("生成签名失败: %v", err)
+		return nil, fmt.Errorf("Failed to generate signature: %v", err)
 	}
 
-	// 构造完整URL
+	// build full URL
 	baseURL := "https://api.now.cn"
 	fullURL := baseURL + apiPath + "?" + queryString
 
-	// 创建HTTP请求
+	// createHTTPrequest
 	req, err := http.NewRequest(method, fullURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %v", err)
+		return nil, fmt.Errorf("Failed to create request: %v", err)
 	}
 
-	// 设置请求头
+	// set request headers
 	req.Header.Set("Accept", "application/json")
 
-	// 发送请求
+	// send request
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求失败: %v", err)
+		return nil, fmt.Errorf("Request failed: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// 读取响应
+	// read response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %v", err)
+		return nil, fmt.Errorf("Failed to read response: %v", err)
 	}
 
-	// 检查HTTP状态码
+	// checkHTTPstatus code
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API请求失败，状态码: %d, 响应: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("API request failed, status code: %d, response: %s", resp.StatusCode, string(body))
 	}
 
 	return body, nil

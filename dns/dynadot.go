@@ -33,14 +33,14 @@ type DynadotRecord struct {
 	ContainRoot    bool
 }
 
-// DynadotResp 修改/添加返回结果
+// DynadotResp modify/add result
 type DynadotResp struct {
 	Status    string   `json:"status"`
 	ErrorCode int      `json:"error_code"`
 	Content   []string `json:"content"`
 }
 
-// Init 初始化
+// Init
 func (dynadot *Dynadot) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	dynadot.Domains.Ipv4Cache = ipv4cache
 	dynadot.Domains.Ipv6Cache = ipv6cache
@@ -49,21 +49,21 @@ func (dynadot *Dynadot) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache,
 	dynadot.DNS = dnsConf.DNS
 	dynadot.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认600s
+		// default600s
 		dynadot.TTL = "600"
 	} else {
 		dynadot.TTL = dnsConf.TTL
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (dynadot *Dynadot) AddUpdateDomainRecords() config.Domains {
 	dynadot.addOrUpdateDomainRecords("A")
 	dynadot.addOrUpdateDomainRecords("AAAA")
 	return dynadot.Domains
 }
 
-// addOrUpdateDomainRecords 添加或更新记录
+// addOrUpdateDomainRecords add or update records
 func (dynadot *Dynadot) addOrUpdateDomainRecords(recordType string) {
 	ipAddr, domains := dynadot.Domains.GetNewIpResult(recordType)
 
@@ -71,32 +71,32 @@ func (dynadot *Dynadot) addOrUpdateDomainRecords(recordType string) {
 		return
 	}
 
-	// 防止多次发送Webhook通知
+	// Webhooknotification
 	if recordType == "A" {
 		if dynadot.LastIpv4 == ipAddr {
-			util.Log("你的IPv4未变化, 未触发 %s 请求", "dynadot")
+			util.Log("Your's IPv4 has not changed, %s request has not been triggered", "dynadot")
 			return
 		}
 	} else {
 		if dynadot.LastIpv6 == ipAddr {
-			util.Log("你的IPv6未变化, 未触发 %s 请求", "dynadot")
+			util.Log("Your's IPv6 has not changed, %s request has not been triggered", "dynadot")
 			return
 		}
 	}
 
 	records := mergeDomains(domains)
-	// dynadot 仅支持一个域名对应一个dynamic password
+	// dynadot domain dynamic password
 	if len(records) != 1 {
-		util.Log("dynadot仅支持单域名配置，多个域名请添加更多配置")
+		util.Log("dynadot only supports single domain configuration, please add more configurations")
 		return
 	}
 	for _, record := range records {
-		// 创建或更新
+		// create update
 		dynadot.createOrModify(record, recordType, ipAddr)
 	}
 }
 
-// 合并域名的子域名
+// domain domain
 func mergeDomains(domains []*config.Domain) (records []*DynadotRecord) {
 	records = make([]*DynadotRecord, 0)
 	for _, domain := range domains {
@@ -123,14 +123,14 @@ func mergeDomains(domains []*config.Domain) (records []*DynadotRecord) {
 			records = append(records, record)
 		}
 		if len(domain.SubDomain) == 0 {
-			// 包含根域名
+			// domain
 			record.ContainRoot = true
 		}
 	}
 	return records
 }
 
-// 创建或变更记录
+// create record
 func (dynadot *Dynadot) createOrModify(record *DynadotRecord, recordType string, ipAddr string) {
 	params := record.CustomParams
 	params.Set("domain", record.DomainName)
@@ -148,23 +148,23 @@ func (dynadot *Dynadot) createOrModify(record *DynadotRecord, recordType string,
 	for _, domain := range domains {
 
 		if err != nil {
-			util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+			util.Log("Failed to updated domain %s! Result: %s", domain, err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
 
 		if result.ErrorCode != -1 {
-			util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+			util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 			domain.UpdateStatus = config.UpdatedSuccess
 		} else {
-			util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, strings.Join(result.Content, ","))
+			util.Log("Failed to updated domain %s! Result: %s", domain, strings.Join(result.Content, ","))
 			domain.UpdateStatus = config.UpdatedFailed
 		}
 	}
 
 }
 
-// request 统一请求接口
+// request shared request method
 func (dynadot *Dynadot) request(params url.Values, result interface{}) (err error) {
 
 	req, err := http.NewRequest(

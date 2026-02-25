@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// GetHTTPResponse 处理HTTP结果，返回序列化的json
+// GetHTTPResponse handleHTTPresult json
 func GetHTTPResponse(resp *http.Response, err error, result interface{}) error {
 	body, err := GetHTTPResponseOrg(resp, err)
 
@@ -22,7 +22,7 @@ func GetHTTPResponse(resp *http.Response, err error, result interface{}) error {
 
 }
 
-// GetHTTPResponseOrg 处理HTTP结果，返回byte
+// GetHTTPResponseOrg handleHTTPresult byte
 func GetHTTPResponseOrg(resp *http.Response, err error) ([]byte, error) {
 	if err != nil {
 		return nil, err
@@ -36,9 +36,9 @@ func GetHTTPResponseOrg(resp *http.Response, err error) ([]byte, error) {
 		return nil, err
 	}
 
-	// 300及以上状态码都算异常
+	// 300 status code
 	if resp.StatusCode >= 300 {
-		err = fmt.Errorf("%s", LogStr("返回内容: %s ,返回状态码: %d", string(body), resp.StatusCode))
+		err = fmt.Errorf("%s", LogStr("Response body: %s ,Response status code: %d", string(body), resp.StatusCode))
 	}
 
 	return body, err

@@ -18,7 +18,7 @@ const (
 )
 
 // https://www.dns.la/docs/ApiDoc
-// dnsla dnsla实现
+// dnsla dnsla
 type Dnsla struct {
 	DNS     config.DNS
 	Domains config.Domains
@@ -33,7 +33,7 @@ type DnslaRecord struct {
 	Data string `json:"data"`
 }
 
-// DnslaRecordListResp recordListAPI结果
+// DnslaRecordListResp recordListAPIresult
 type DnslaRecordListResp struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
@@ -52,14 +52,14 @@ type DnslaStatus struct {
 	} `json:"data"`
 }
 
-// Init 初始化
+// Init
 func (dnsla *Dnsla) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv6cache *util.IpCache) {
 	dnsla.Domains.Ipv4Cache = ipv4cache
 	dnsla.Domains.Ipv6Cache = ipv6cache
 	dnsla.DNS = dnsConf.DNS
 	dnsla.Domains.GetNewIp(dnsConf)
 	if dnsConf.TTL == "" {
-		// 默认600s
+		// default600s
 		dnsla.TTL = 600
 	} else {
 		ttlInt, _ := strconv.Atoi(dnsConf.TTL)
@@ -67,7 +67,7 @@ func (dnsla *Dnsla) Init(dnsConf *config.DnsConfig, ipv4cache *util.IpCache, ipv
 	}
 }
 
-// AddUpdateDomainRecords 添加或更新IPv4/IPv6记录
+// AddUpdateDomainRecords add or update IPv4/IPv6 records
 func (dnsla *Dnsla) AddUpdateDomainRecords() config.Domains {
 	dnsla.addUpdateDomainRecords("A")
 	dnsla.addUpdateDomainRecords("AAAA")
@@ -82,7 +82,7 @@ func (dnsla *Dnsla) addUpdateDomainRecords(recordType string) {
 	for _, domain := range domains {
 		resultByte, err := dnsla.getRecordList(domain, recordType)
 		if err != nil {
-			util.Log("查询域名信息发生异常! %s", err)
+			util.Log("Failed to query domain info! %s", err)
 			domain.UpdateStatus = config.UpdatedFailed
 			return
 		}
@@ -92,7 +92,7 @@ func (dnsla *Dnsla) addUpdateDomainRecords(recordType string) {
 			util.Log(errU.Error())
 			return
 		}
-		if jsonResult.Data.Total > 0 { // 默认第一个
+		if jsonResult.Data.Total > 0 { // first by default
 			recordSelected := jsonResult.Data.Results[0]
 			params := domain.GetCustomParams()
 			if params.Has("id") {
@@ -102,16 +102,16 @@ func (dnsla *Dnsla) addUpdateDomainRecords(recordType string) {
 					}
 				}
 			}
-			// 更新
+			// update
 			dnsla.modify(recordSelected, domain, recordType, ipAddr)
 		} else {
-			// 新增
+			// add
 			dnsla.create(domain, recordType, ipAddr)
 		}
 	}
 }
 
-// 创建
+// create
 func (dnsla *Dnsla) create(domain *config.Domain, recordType string, ipAddr string) {
 	recordTypeInt := 1
 	if recordType == "AAAA" {
@@ -134,7 +134,7 @@ func (dnsla *Dnsla) create(domain *config.Domain, recordType string, ipAddr stri
 	jsonData, _ := json.Marshal(createParams)
 	resultByte, err := dnsla.request("POST", recordCreate, jsonData)
 	if err != nil {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to add domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
@@ -145,19 +145,19 @@ func (dnsla *Dnsla) create(domain *config.Domain, recordType string, ipAddr stri
 		return
 	}
 	if jsonResult.Code == 200 {
-		util.Log("新增域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Added domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("新增域名解析 %s 失败! 异常信息: %s", domain, jsonResult.Msg)
+		util.Log("Failed to add domain %s! Result: %s", domain, jsonResult.Msg)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
 
-// 修改
+// modify
 func (dnsla *Dnsla) modify(record DnslaRecord, domain *config.Domain, recordType string, ipAddr string) {
-	// 相同不修改
+	// skip if unchanged
 	if record.Data == ipAddr {
-		util.Log("你的IP %s 没有变化, 域名 %s", ipAddr, domain)
+		util.Log("Your's IP %s has not changed! Domain: %s", ipAddr, domain)
 		return
 	}
 	recordTypeInt := 1
@@ -182,7 +182,7 @@ func (dnsla *Dnsla) modify(record DnslaRecord, domain *config.Domain, recordType
 	resultByte, err := dnsla.request("PUT", recordModify, jsonData)
 
 	if err != nil {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, err)
+		util.Log("Failed to updated domain %s! Result: %s", domain, err)
 		domain.UpdateStatus = config.UpdatedFailed
 		return
 	}
@@ -194,10 +194,10 @@ func (dnsla *Dnsla) modify(record DnslaRecord, domain *config.Domain, recordType
 		return
 	}
 	if jsonResult.Code == 200 {
-		util.Log("更新域名解析 %s 成功! IP: %s", domain, ipAddr)
+		util.Log("Updated domain %s successfully! IP: %s", domain, ipAddr)
 		domain.UpdateStatus = config.UpdatedSuccess
 	} else {
-		util.Log("更新域名解析 %s 失败! 异常信息: %s", domain, jsonResult.Msg)
+		util.Log("Failed to updated domain %s! Result: %s", domain, jsonResult.Msg)
 		domain.UpdateStatus = config.UpdatedFailed
 	}
 }
@@ -212,12 +212,12 @@ func (dnsla *Dnsla) request(method, apiAddr string, values []byte) (body []byte,
 	if err != nil {
 		panic(err)
 	}
-	// 设置自定义 Headers
+	// set custom headers
 	byteBuff := []byte(dnsla.DNS.ID + ":" + dnsla.DNS.Secret)
 	token := "Basic " + base64.StdEncoding.EncodeToString(byteBuff)
 	req.Header.Set("Authorization", token)
 	req.Header.Set("Content-Type", "application/json;charset=utf-8")
-	// 4. 发送请求
+	// 4. send request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -229,7 +229,7 @@ func (dnsla *Dnsla) request(method, apiAddr string, values []byte) (body []byte,
 	return
 }
 
-// 获得域名记录列表
+// get domain record list
 func (dnsla *Dnsla) getRecordList(domain *config.Domain, typ string) (result []byte, err error) {
 	recordTypeInt := "1"
 	if typ == "AAAA" {
@@ -250,10 +250,10 @@ func (dnsla *Dnsla) getRecordList(domain *config.Domain, typ string) (result []b
 
 	byteBuff := []byte(dnsla.DNS.ID + ":" + dnsla.DNS.Secret)
 	token := "Basic " + base64.StdEncoding.EncodeToString(byteBuff)
-	// 设置 Headers
+	// Headers
 	req.Header.Set("Authorization", token)
 
-	// 发送请求
+	// send request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -261,7 +261,7 @@ func (dnsla *Dnsla) getRecordList(domain *config.Domain, typ string) (result []b
 	}
 	defer resp.Body.Close()
 
-	// 读取响应
+	// read response
 	result, errR := io.ReadAll(resp.Body)
 	if errR != nil {
 		util.Log(errR.Error())

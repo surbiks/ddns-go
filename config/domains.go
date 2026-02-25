@@ -19,23 +19,23 @@ type Domains struct {
 	Ipv6Domains []*Domain
 }
 
-// Domain 域名实体
+// Domain domain
 type Domain struct {
-	// DomainName 根域名
+	// DomainName domain
 	DomainName string
-	// SubDomain 子域名
+	// SubDomain domain
 	SubDomain    string
 	CustomParams string
-	UpdateStatus updateStatusType // 更新状态
+	UpdateStatus updateStatusType // updatestatus
 }
 
-// DomainTuples 域名元组映射 key: Domain.String()
+// DomainTuples domain key: Domain.String()
 type DomainTuples map[string]*DomainTuple
 
-// DomainTuple 域名元组
+// DomainTuple domain
 type DomainTuple struct {
 	RecordType string
-	// Primary 首要域名 Domains[-1] = Primary
+	// Primary domain Domains[-1] = Primary
 	Primary  *Domain
 	Domains  []*Domain
 	IpAddrs  []string
@@ -60,7 +60,7 @@ func (d Domain) String() string {
 	return d.DomainName
 }
 
-// GetFullDomain 获得全部的，子域名
+// GetFullDomain get domain
 func (d Domain) GetFullDomain() string {
 	if d.SubDomain != "" {
 		return d.SubDomain + "." + d.DomainName
@@ -68,8 +68,8 @@ func (d Domain) GetFullDomain() string {
 	return "@" + "." + d.DomainName
 }
 
-// GetSubDomain 获得子域名，为空返回@
-// 阿里云/腾讯云/dnspod/GoDaddy/namecheap 需要
+// GetSubDomain get domain @
+// / /dnspod/GoDaddy/namecheap
 func (d Domain) GetSubDomain() string {
 	if d.SubDomain != "" {
 		return d.SubDomain
@@ -98,7 +98,7 @@ func (d Domain) ToASCII() string {
 	return name
 }
 
-// GetNewIp 接口/网卡/命令获得 ip 并校验用户输入的域名
+// GetNewIp / / get ip domain
 func (domains *Domains) GetNewIp(dnsConf *DnsConfig) {
 	domains.Ipv4Domains = checkParseDomains(dnsConf.Ipv4.Domains)
 	domains.Ipv6Domains = checkParseDomains(dnsConf.Ipv6.Domains)
@@ -110,12 +110,12 @@ func (domains *Domains) GetNewIp(dnsConf *DnsConfig) {
 			domains.Ipv4Addr = ipv4Addr
 			domains.Ipv4Cache.TimesFailedIP = 0
 		} else {
-			// 启用IPv4 & 未获取到IP & 填写了域名 & 失败刚好3次，防止偶尔的网络连接失败，并且只发一次
+			// IPv4 & get IP & domain & failed 3 failed
 			domains.Ipv4Cache.TimesFailedIP++
 			if domains.Ipv4Cache.TimesFailedIP == 3 {
 				domains.Ipv4Domains[0].UpdateStatus = UpdatedFailed
 			}
-			util.Log("未能获取IPv4地址, 将不会更新")
+			util.Log("Failed to get IPv4 address, will not update")
 		}
 	}
 
@@ -126,18 +126,18 @@ func (domains *Domains) GetNewIp(dnsConf *DnsConfig) {
 			domains.Ipv6Addr = ipv6Addr
 			domains.Ipv6Cache.TimesFailedIP = 0
 		} else {
-			// 启用IPv6 & 未获取到IP & 填写了域名 & 失败刚好3次，防止偶尔的网络连接失败，并且只发一次
+			// IPv6 & get IP & domain & failed 3 failed
 			domains.Ipv6Cache.TimesFailedIP++
 			if domains.Ipv6Cache.TimesFailedIP == 3 {
 				domains.Ipv6Domains[0].UpdateStatus = UpdatedFailed
 			}
-			util.Log("未能获取IPv6地址, 将不会更新")
+			util.Log("Failed to get IPv6 address, will not update")
 		}
 	}
 
 }
 
-// checkParseDomains 校验并解析用户输入的域名
+// checkParseDomains parse domain
 func checkParseDomains(domainArr []string) (domains []*Domain) {
 	for _, domainStr := range domainArr {
 		domainStr = strings.TrimSpace(domainStr)
@@ -147,19 +147,19 @@ func checkParseDomains(domainArr []string) (domains []*Domain) {
 
 		domain := &Domain{}
 
-		// qp(queryParts) 从域名中提取自定义参数，如 baidu.com?q=1 => [baidu.com, q=1]
+		// qp(queryParts) domain parameters baidu.com?q=1 => [baidu.com, q=1]
 		qp := strings.Split(domainStr, "?")
 		domainStr = qp[0]
 
-		// dp(domainParts) 将域名（qp[0]）分割为子域名与根域名，如 www:example.cn.eu.org => [www, example.cn.eu.org]
+		// dp(domainParts) domain qp[0] domain domain www:example.cn.eu.org => [www, example.cn.eu.org]
 		dp := strings.Split(domainStr, ":")
 
 		switch len(dp) {
-		case 1: // 不使用冒号分割，自动识别域名
+		case 1: // domain
 			domainName, err := publicsuffix.EffectiveTLDPlusOne(domainStr)
 			if err != nil {
-				util.Log("域名: %s 不正确", domainStr)
-				util.Log("异常信息: %s", err)
+				util.Log("The domain %s is incorrect", domainStr)
+				util.Log("Exception: %s", err)
 				continue
 			}
 			domain.DomainName = domainName
@@ -168,24 +168,24 @@ func checkParseDomains(domainArr []string) (domains []*Domain) {
 			if domainLen > 0 {
 				domain.SubDomain = domainStr[:domainLen]
 			}
-		case 2: // 使用冒号分隔，为 子域名:根域名 格式
+		case 2: // domain: domain
 			sp := strings.Split(dp[1], ".")
 			if len(sp) <= 1 {
-				util.Log("域名: %s 不正确", domainStr)
+				util.Log("The domain %s is incorrect", domainStr)
 				continue
 			}
 			domain.DomainName = dp[1]
 			domain.SubDomain = dp[0]
 		default:
-			util.Log("域名: %s 不正确", domainStr)
+			util.Log("The domain %s is incorrect", domainStr)
 			continue
 		}
 
-		// 参数条件
+		// parameters
 		if len(qp) == 2 {
 			u, err := url.Parse("https://baidu.com?" + qp[1])
 			if err != nil {
-				util.Log("域名: %s 解析失败", domainStr)
+				util.Log("The domain %s resolution failed", domainStr)
 				continue
 			}
 			domain.CustomParams = u.Query().Encode()
@@ -195,13 +195,13 @@ func checkParseDomains(domainArr []string) (domains []*Domain) {
 	return
 }
 
-// GetNewIpResult 获得GetNewIp结果
+// GetNewIpResult getGetNewIpresult
 func (domains *Domains) GetNewIpResult(recordType string) (ipAddr string, retDomains []*Domain) {
 	if recordType == "AAAA" {
 		if domains.Ipv6Cache.Check(domains.Ipv6Addr) {
 			return domains.Ipv6Addr, domains.Ipv6Domains
 		} else {
-			util.Log("IPv6未改变, 将等待 %d 次后与DNS服务商进行比对", domains.Ipv6Cache.Times)
+			util.Log("IPv6 has not changed, will wait %d times to compare with DNS provider", domains.Ipv6Cache.Times)
 			return "", domains.Ipv6Domains
 		}
 	}
@@ -209,12 +209,12 @@ func (domains *Domains) GetNewIpResult(recordType string) (ipAddr string, retDom
 	if domains.Ipv4Cache.Check(domains.Ipv4Addr) {
 		return domains.Ipv4Addr, domains.Ipv4Domains
 	} else {
-		util.Log("IPv4未改变, 将等待 %d 次后与DNS服务商进行比对", domains.Ipv4Cache.Times)
+		util.Log("IPv4 has not changed, will wait %d times to compare with DNS provider", domains.Ipv4Cache.Times)
 		return "", domains.Ipv4Domains
 	}
 }
 
-// GetAllNewIpResult 获得getNewIp结果
+// GetAllNewIpResult getgetNewIpresult
 func (domains *Domains) GetAllNewIpResult(multiRecordType string) (results DomainTuples) {
 	ipv4Addr, ipv4Domains := domains.GetNewIpResult("A")
 	ipv6Addr, ipv6Domains := domains.GetNewIpResult("AAAA")
@@ -235,7 +235,7 @@ func (domains *Domains) GetAllNewIpResult(multiRecordType string) (results Domai
 	return
 }
 
-// append 添加域名到域名元组映射
+// append adddomain domain
 func (domains DomainTuples) append(ipAddr string, retDomains []*Domain, multiRecordType string, template DomainTuple) {
 	if ipAddr == "" {
 		return
@@ -260,7 +260,7 @@ func (domains DomainTuples) append(ipAddr string, retDomains []*Domain, multiRec
 	}
 }
 
-// SetUpdateStatus 设置更新状态
+// SetUpdateStatus set update status
 func (d *DomainTuple) SetUpdateStatus(status updateStatusType) {
 	if d.Primary.UpdateStatus == status {
 		return
@@ -271,7 +271,7 @@ func (d *DomainTuple) SetUpdateStatus(status updateStatusType) {
 	}
 }
 
-// GetIpAddrPool 设置更新状态
+// GetIpAddrPool set update status
 func (d *DomainTuple) GetIpAddrPool(separator string) (result string) {
 	s := d.Primary.GetCustomParams().Get("IpAddrPool")
 	if len(s) != 0 {
